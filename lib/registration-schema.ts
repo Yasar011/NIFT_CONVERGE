@@ -41,30 +41,32 @@ export const PROGRAMMES = ["B.Des", "B.F.Tech", "M.Des", "M.F.Tech", "MFM"];
 export const YEARS = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
 export const SEMESTERS = ["1", "2", "3", "4", "5", "6", "7", "8"];
 
-export function validateRegistration(data: RegistrationPayload): string[] {
-  const errors: string[] = [];
+export type RegistrationErrors = Partial<Record<keyof RegistrationPayload, string>>;
 
-  if (!data.fullName.trim()) errors.push("Full name is required.");
-  if (!data.studentId.trim()) errors.push("NIFT student ID is required.");
-  if (!data.year) errors.push("Year is required.");
-  if (!data.programme) errors.push("Programme is required.");
-  if (!data.department.trim()) errors.push("Department is required.");
-  if (!data.semester) errors.push("Semester is required.");
-  if (!data.phone.trim()) errors.push("Phone number is required.");
-  if (!/^\S+@\S+\.\S+$/.test(data.email)) errors.push("A valid email address is required.");
-  if (!data.residence) errors.push("Please specify Hostel / Day Scholar.");
+export function validateRegistration(data: RegistrationPayload): RegistrationErrors {
+  const errors: RegistrationErrors = {};
 
-  if (!data.majorEvent1) errors.push("Major Event 1 is required.");
-  if (!data.majorEvent2) errors.push("Major Event 2 is required.");
-  if (!data.minorEvent) errors.push("Minor Event is required.");
+  if (!data.fullName.trim()) errors.fullName = "Enter your full name.";
+  if (!data.studentId.trim()) errors.studentId = "Enter your NIFT student ID.";
+  if (!data.year) errors.year = "Select your year.";
+  if (!data.programme) errors.programme = "Select your programme.";
+  if (!data.department.trim()) errors.department = "Enter your department.";
+  if (!data.semester) errors.semester = "Select your semester.";
+  const digits = data.phone.replace(/\D/g, "");
+  if (!(digits.length === 10 || (digits.length === 12 && digits.startsWith("91"))))
+    errors.phone = "Enter a 10-digit mobile number.";
+  if (!/^\S+@\S+\.\S+$/.test(data.email)) errors.email = "Enter a valid email address.";
+  if (!data.residence) errors.residence = "Choose Hostel or Day Scholar.";
 
-  const picks = [data.majorEvent1, data.majorEvent2, data.minorEvent].filter(Boolean);
-  if (new Set(picks).size !== picks.length) {
-    errors.push("Major Event 1, Major Event 2, and Minor Event must all be different.");
-  }
+  if (!data.majorEvent1) errors.majorEvent1 = "Pick your first major event.";
+  if (!data.majorEvent2) errors.majorEvent2 = "Pick your second major event.";
+  else if (data.majorEvent2 === data.majorEvent1) errors.majorEvent2 = "Must differ from Major 01.";
+  if (!data.minorEvent) errors.minorEvent = "Pick your minor event.";
+  else if (data.minorEvent === data.majorEvent1 || data.minorEvent === data.majorEvent2)
+    errors.minorEvent = "Must differ from your major events.";
 
-  if (!data.rulesAcknowledged) errors.push("You must confirm you have read and understood the event rules.");
-  if (!data.selectionAcknowledged) errors.push("You must confirm you understand registration does not guarantee selection.");
+  if (!data.rulesAcknowledged) errors.rulesAcknowledged = "Please confirm you've read the event rules.";
+  if (!data.selectionAcknowledged) errors.selectionAcknowledged = "Please confirm you understand this.";
 
   return errors;
 }

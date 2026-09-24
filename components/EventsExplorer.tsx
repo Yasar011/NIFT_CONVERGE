@@ -1,73 +1,109 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import clsx from "clsx";
 import { EVENTS } from "@/lib/events";
-import { CATEGORY_META, EventCategory } from "@/lib/types";
-import EventCard from "./EventCard";
-
-const CATEGORIES: (EventCategory | "all")[] = ["all", "sports", "cultural", "literary", "esse", "photography"];
+import { CATEGORY_META, CATEGORY_ORDER, EventCategory } from "@/lib/types";
+import EventRow from "./EventRow";
 
 export default function EventsExplorer() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<EventCategory | "all">("all");
 
   const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
     return EVENTS.filter((e) => {
       const matchesCategory = category === "all" || e.category === category;
       const matchesQuery =
-        query.trim() === "" ||
-        e.name.toLowerCase().includes(query.toLowerCase()) ||
-        e.about.toLowerCase().includes(query.toLowerCase());
+        q === "" ||
+        e.name.toLowerCase().includes(q) ||
+        e.about.toLowerCase().includes(q) ||
+        (e.genderNote ?? "").toLowerCase().includes(q);
       return matchesCategory && matchesQuery;
     });
   }, [query, category]);
 
+  const tabs: { key: EventCategory | "all"; label: string; count: number }[] = [
+    { key: "all", label: "All", count: EVENTS.length },
+    ...CATEGORY_ORDER.map((c) => ({
+      key: c,
+      label: CATEGORY_META[c].short,
+      count: EVENTS.filter((e) => e.category === c).length,
+    })),
+  ];
+
   return (
     <div>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative w-full sm:max-w-sm">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-cream-dim" size={17} />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search events..."
-            className="w-full rounded-full border border-gold/25 bg-ink/60 py-3 pl-11 pr-4 text-sm text-cream placeholder:text-cream-dim/60 focus:border-gold focus:outline-none"
-          />
-        </div>
+      <div className="sticky top-[58px] z-30 -mx-4 border-b-2 border-ink bg-paper px-4 sm:-mx-8 sm:px-8">
+        <div className="flex flex-col gap-0 lg:flex-row lg:items-stretch lg:justify-between">
+          <div className="-mx-4 flex overflow-x-auto px-4 sm:mx-0 sm:px-0" role="tablist" aria-label="Filter by arena">
+            {tabs.map((t) => (
+              <button
+                key={t.key}
+                role="tab"
+                aria-selected={category === t.key}
+                onClick={() => setCategory(t.key)}
+                className={clsx(
+                  "flex shrink-0 cursor-pointer items-baseline gap-1.5 border-b-4 px-3 py-4 text-sm font-bold uppercase tracking-wide transition-colors",
+                  category === t.key ? "border-ink text-ink" : "border-transparent text-ink-soft hover:text-ink"
+                )}
+              >
+                {t.label}
+                <span className="text-[0.65rem] tabular-nums">{t.count}</span>
+              </button>
+            ))}
+          </div>
 
-        <div className="flex flex-wrap gap-2">
-          {CATEGORIES.map((c) => (
-            <button
-              key={c}
-              onClick={() => setCategory(c)}
-              className={clsx(
-                "rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide transition-colors",
-                category === c
-                  ? "bg-gradient-to-r from-gold-light to-magenta text-ink"
-                  : "border border-gold/25 text-cream-dim hover:border-gold/50 hover:text-cream"
-              )}
-            >
-              {c === "all" ? "All" : CATEGORY_META[c].short}
-            </button>
-          ))}
+          <label className="relative flex items-center border-t border-ink/15 lg:w-80 lg:border-l lg:border-t-0">
+            <Search className="pointer-events-none absolute left-0 lg:left-4" size={18} aria-hidden />
+            <span className="sr-only">Search events</span>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search — e.g. relay, dance, film"
+              className="w-full bg-transparent py-4 pl-7 pr-8 text-sm placeholder:text-ink-soft/70 focus:outline-none lg:pl-11"
+            />
+            {query && (
+              <button
+                onClick={() => setQuery("")}
+                className="absolute right-0 cursor-pointer p-1 lg:right-2"
+                aria-label="Clear search"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </label>
         </div>
       </div>
 
-      <p className="mt-5 text-xs uppercase tracking-widest text-cream-dim">
-        {filtered.length} event{filtered.length !== 1 ? "s" : ""} found
-      </p>
+      <div className="hidden grid-cols-[3rem_1fr_9rem_7rem_13rem_2rem] gap-x-4 border-b border-ink/15 py-3 pl-4 pr-2 text-ink-soft md:grid">
+        <span className="label">No.</span>
+        <span className="label">Event</span>
+        <span className="label">Arena</span>
+        <span className="label">Format</span>
+        <span className="label">Participants / campus</span>
+        <span />
+      </div>
 
-      <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((event) => (
-          <EventCard key={`${event.category}-${event.slug}`} event={event} />
+      <ul>
+        {filtered.map((event, i) => (
+          <EventRow key={`${event.category}-${event.slug}`} event={event} index={i} />
         ))}
-      </div>
+      </ul>
 
       {filtered.length === 0 && (
-        <div className="mt-10 rounded-2xl border border-gold/20 bg-ink/60 p-10 text-center text-cream-dim">
-          No events match your search. Try a different keyword or category.
+        <div className="border-b border-ink/15 py-16 text-center">
+          <p className="display-md text-3xl">Nothing matches “{query}”</p>
+          <button
+            onClick={() => {
+              setQuery("");
+              setCategory("all");
+            }}
+            className="mt-4 cursor-pointer text-sm font-semibold underline underline-offset-4"
+          >
+            Clear filters
+          </button>
         </div>
       )}
     </div>

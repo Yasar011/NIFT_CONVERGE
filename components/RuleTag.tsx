@@ -1,18 +1,25 @@
 import clsx from "clsx";
 
-export default function RuleTag({ type }: { type: "official" | "jodhpur" }) {
-  const isOfficial = type === "official";
+// Stamp that marks where a rule comes from, so NIFT Jodhpur's own
+// process is never confused with the official CONVERGE rulebook.
+export default function RuleTag({
+  type,
+  className,
+}: {
+  type: "official" | "jodhpur";
+  className?: string;
+}) {
+  const official = type === "official";
   return (
     <span
       className={clsx(
-        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-wider",
-        isOfficial
-          ? "border-teal/50 bg-teal/10 text-teal"
-          : "border-magenta/50 bg-magenta/10 text-magenta-light"
+        "label inline-flex items-center gap-2 border-2 px-2.5 py-1",
+        official ? "border-blue text-blue" : "border-sindoor text-sindoor",
+        className
       )}
     >
-      <span className={clsx("h-1.5 w-1.5 rounded-full", isOfficial ? "bg-teal" : "bg-magenta")} />
-      {isOfficial ? "Official Converge Rule" : "NIFT Jodhpur Selection Process"}
+      <span className={clsx("h-2 w-2", official ? "bg-blue" : "bg-sindoor")} aria-hidden />
+      {official ? "Official Converge rule" : "NIFT Jodhpur selection rule"}
     </span>
   );
 }

@@ -1,51 +1,61 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { Plus } from "lucide-react";
 import clsx from "clsx";
 
 export interface FaqItem {
   question: string;
-  answer: string;
+  answer: React.ReactNode;
 }
 
 export default function FaqAccordion({ items }: { items: FaqItem[] }) {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   return (
-    <div className="space-y-3">
+    <ul className="border-t-2 border-ink">
       {items.map((item, i) => {
         const open = openIndex === i;
         return (
-          <div key={i} className="card-border overflow-hidden rounded-2xl bg-indigo/40">
-            <button
-              onClick={() => setOpenIndex(open ? null : i)}
-              className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
-            >
-              <span className="font-display text-base font-semibold text-cream">
-                {item.question}
-              </span>
-              <ChevronDown
-                size={18}
-                className={clsx(
-                  "shrink-0 text-gold-light transition-transform",
-                  open && "rotate-180"
-                )}
-              />
-            </button>
+          <li key={i} className="border-b-2 border-ink">
+            <h3>
+              <button
+                onClick={() => setOpenIndex(open ? null : i)}
+                aria-expanded={open}
+                aria-controls={`faq-${i}`}
+                className="grid w-full cursor-pointer grid-cols-[2.5rem_1fr_auto] items-center gap-3 py-6 text-left transition-colors hover:bg-paper-2 sm:px-2"
+              >
+                <span className="text-xs font-bold tabular-nums text-ink-soft">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <span className="display-md text-2xl sm:text-4xl">{item.question}</span>
+                <span
+                  className={clsx(
+                    "flex h-10 w-10 items-center justify-center border-2 border-ink transition-all duration-200",
+                    open ? "rotate-45 bg-ink text-paper" : "bg-paper"
+                  )}
+                  aria-hidden
+                >
+                  <Plus size={18} strokeWidth={2.5} />
+                </span>
+              </button>
+            </h3>
             <div
+              id={`faq-${i}`}
               className={clsx(
                 "grid transition-all duration-300",
-                open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
               )}
             >
               <div className="overflow-hidden">
-                <p className="px-5 pb-5 text-sm leading-relaxed text-cream-dim">{item.answer}</p>
+                <p className="max-w-2xl pb-7 pl-[3.25rem] pr-4 text-lg leading-relaxed text-ink-soft sm:pl-[3.75rem]">
+                  {item.answer}
+                </p>
               </div>
             </div>
-          </div>
+          </li>
         );
       })}
-    </div>
+    </ul>
   );
 }

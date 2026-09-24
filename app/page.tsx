@@ -1,247 +1,250 @@
 import Link from "next/link";
-import { Sparkles, Trophy, Users } from "lucide-react";
+import { ArrowRight, ArrowUpRight, FileText } from "lucide-react";
+import clsx from "clsx";
 import RegisterCta from "@/components/RegisterCta";
 import SectionHeading from "@/components/SectionHeading";
 import SelectionJourney from "@/components/SelectionJourney";
-import CategoryCard from "@/components/CategoryCard";
 import RuleTag from "@/components/RuleTag";
-import { CATEGORY_META } from "@/lib/types";
-import { getEventsByCategory } from "@/lib/events";
+import Arches from "@/components/Arches";
+import Marquee from "@/components/Marquee";
+import { CATEGORY_META, CATEGORY_ORDER } from "@/lib/types";
+import { EVENTS, getEventsByCategory } from "@/lib/events";
+import { REGISTRATION_OPEN } from "@/lib/registration-status";
+
+const ARENA_HOVER: Record<string, string> = {
+  sports: "hover:bg-sindoor hover:text-paper",
+  cultural: "hover:bg-rani hover:text-paper",
+  literary: "hover:bg-blue hover:text-paper",
+  esse: "hover:bg-marigold",
+  photography: "hover:bg-peacock hover:text-paper",
+};
 
 export default function Home() {
   return (
-    <div>
+    <>
       {/* HERO */}
-      <section className="relative overflow-hidden border-b border-gold/15">
-        <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 animate-float-slow rounded-full bg-magenta/20 blur-3xl" />
-        <div className="pointer-events-none absolute -right-16 top-32 h-80 w-80 animate-float-slow rounded-full bg-gold/15 blur-3xl" style={{ animationDelay: "1.5s" }} />
-        <div className="pointer-events-none absolute bottom-0 left-1/3 h-64 w-64 animate-float-slow rounded-full bg-teal/15 blur-3xl" style={{ animationDelay: "3s" }} />
+      <section className="mx-auto max-w-[1400px] px-4 pt-6 sm:px-8 lg:pt-10">
+        <div className="label flex items-center justify-between border-b border-ink/20 pb-3 text-ink-soft">
+          <span>NIFT Jodhpur · Contingent selection</span>
+          <span className="hidden sm:block">National inter-campus festival · 2026</span>
+        </div>
 
-        <div className="relative mx-auto max-w-5xl px-5 py-20 text-center sm:px-8 sm:py-28">
-          <p className="animate-fade-up mb-5 text-xs font-bold uppercase tracking-[0.35em] text-gold-light">
-            NIFT Jodhpur × National Inter-Campus Festival
-          </p>
-          <h1 className="animate-fade-up font-display text-5xl font-bold leading-[1.05] text-cream sm:text-7xl">
-            CONVERGE <span className="text-gradient-gold">2026</span>
-          </h1>
-          <p className="animate-fade-up mt-2 font-display text-xl font-medium tracking-wide text-cream/90 sm:text-2xl">
-            NIFT JODHPUR
-          </p>
-          <p className="animate-fade-up mt-4 font-display text-2xl italic text-gold-light sm:text-3xl">
-            Rang Regalia
-          </p>
+        <div className="fit-container pt-6 lg:pt-8">
+          <h1 className="rise display hero-word">Converge</h1>
+        </div>
 
-          <p className="animate-fade-up mx-auto mt-6 max-w-2xl text-base leading-relaxed text-cream-dim sm:text-lg">
-            NIFT&apos;s annual inter-campus festival bringing together students from NIFT
-            campuses across India through sports, cultural, literary and creative events.
-          </p>
+        <div className="grid gap-10 pt-4 lg:grid-cols-12 lg:gap-8">
+          <div className="lg:col-span-7">
+            <div className="rise flex flex-wrap items-end gap-x-5 gap-y-2" style={{ animationDelay: "80ms" }}>
+              <span className="display text-[24vw] text-sindoor sm:text-[16vw] lg:text-[9rem]">2026</span>
+              <span className="pb-2 lg:pb-4">
+                <span className="block font-serif text-4xl italic leading-none sm:text-5xl">Rang Regalia</span>
+                <span className="mt-2 block font-deva text-lg text-ink-soft">काव्य · कला · क्रीड़ा</span>
+              </span>
+            </div>
 
-          <div className="animate-fade-up mt-9 flex flex-wrap items-center justify-center gap-4">
-            <RegisterCta />
-            <Link
-              href="/events"
-              className="inline-flex items-center gap-2 rounded-full border border-cream/25 px-8 py-4 text-sm font-semibold uppercase tracking-wide text-cream transition-colors hover:border-gold hover:text-gold-light"
-            >
-              Explore Events
-            </Link>
-            <Link
-              href="/rulebook"
-              className="inline-flex items-center gap-2 rounded-full border border-cream/25 px-8 py-4 text-sm font-semibold uppercase tracking-wide text-cream transition-colors hover:border-gold hover:text-gold-light"
-            >
-              Read Rulebook
-            </Link>
+            <p className="rise mt-8 max-w-xl text-lg leading-relaxed text-ink-soft" style={{ animationDelay: "160ms" }}>
+              NIFT&apos;s annual inter-campus festival of sports, culture, literature and
+              creativity. This is where NIFT Jodhpur picks the students who will represent
+              the campus.
+            </p>
+
+            <div className="rise mt-8 flex flex-wrap items-center gap-x-8 gap-y-5" style={{ animationDelay: "240ms" }}>
+              <RegisterCta />
+              <Link
+                href="/events"
+                className="group inline-flex items-center gap-2 border-b-2 border-ink pb-1 text-sm font-bold uppercase tracking-wide"
+              >
+                Browse all {EVENTS.length} events
+                <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
+              </Link>
+              <a
+                href="/documents/converge-2026-rulebook.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-ink-soft hover:text-ink"
+              >
+                <FileText size={16} /> Rulebook (PDF)
+              </a>
+            </div>
           </div>
 
-          {/* 3-second clarity strip */}
-          <div className="animate-fade-up mt-16 grid gap-4 sm:grid-cols-3">
-            <div className="card-border rounded-2xl bg-ink/60 p-5 text-left">
-              <Sparkles className="text-gold-light" size={20} />
-              <p className="mt-3 font-display text-base font-semibold text-cream">
-                Converge 2026 is coming
-              </p>
-              <p className="mt-1 text-xs text-cream-dim">
-                NIFT&apos;s biggest inter-campus festival returns this year.
-              </p>
-            </div>
-            <div className="card-border rounded-2xl bg-ink/60 p-5 text-left">
-              <Users className="text-gold-light" size={20} />
-              <p className="mt-3 font-display text-base font-semibold text-cream">
-                Max 50 participants
-              </p>
-              <p className="mt-1 text-xs text-cream-dim">
-                NIFT Jodhpur can send a maximum of 50 students to Converge.
-              </p>
-            </div>
-            <div className="card-border rounded-2xl bg-ink/60 p-5 text-left">
-              <Trophy className="text-gold-light" size={20} />
-              <p className="mt-3 font-display text-base font-semibold text-cream">
-                2 Major + 1 Minor
-              </p>
-              <p className="mt-1 text-xs text-cream-dim">
-                Choose this combination of events to enter the selection process.
-              </p>
-            </div>
+          <div className="lg:col-span-5 lg:-mt-6">
+            <Arches className="w-full" />
+            <p className="label mt-3 text-ink-soft">Five arenas · five arches · one campus contingent</p>
           </div>
         </div>
-      </section>
 
-      {/* HIGHLIGHTED NOTICE */}
-      <section className="mx-auto max-w-5xl px-5 py-14 sm:px-8">
-        <div className="relative overflow-hidden rounded-3xl border border-gold/40 bg-gradient-to-br from-maroon via-maroon-light to-magenta p-8 text-center shadow-2xl shadow-magenta/10 sm:p-12">
-          <p className="font-display text-2xl font-bold text-cream sm:text-3xl">
-            Want to represent NIFT Jodhpur at Converge 2026?
-          </p>
-          <p className="mt-3 text-cream/90">Choose your events carefully.</p>
-          <p className="mt-4 font-display text-lg font-semibold text-gold-light">
-            2 Major Events + 1 Minor Event
-          </p>
-          <p className="mx-auto mt-3 max-w-xl text-sm text-cream/85">
-            Complete your registration to enter the NIFT Jodhpur selection process.
-            Only selected students will be part of the final 50-member CONVERGE contingent.
-          </p>
-          <div className="mt-7 flex justify-center">
-            <RegisterCta variant="outline" />
-          </div>
-        </div>
-      </section>
-
-      {/* WHAT IS CONVERGE */}
-      <section className="mx-auto max-w-6xl px-5 py-14 sm:px-8">
-        <SectionHeading
-          eyebrow="What is Converge"
-          title="One festival, five arenas of talent"
-          description="Converge is NIFT's annual inter-campus festival that brings together students from NIFT centres across India to compete and collaborate."
-        />
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {(Object.keys(CATEGORY_META) as (keyof typeof CATEGORY_META)[]).map((key) => (
-            <div key={key} className="card-border rounded-2xl bg-indigo/40 p-5">
-              <p className="font-display text-base font-semibold text-cream">
-                {CATEGORY_META[key].label}
-              </p>
-              <p className="mt-2 text-xs leading-relaxed text-cream-dim">
-                {CATEGORY_META[key].description}
-              </p>
+        {/* fact strip */}
+        <dl className="mt-14 grid grid-cols-2 border-t-2 border-ink lg:grid-cols-4">
+          {[
+            { k: "50", v: "Maximum students NIFT Jodhpur can send", tag: "Official rule" },
+            { k: String(EVENTS.length), v: "Events across five arenas", tag: "From the rulebook" },
+            { k: "2+1", v: "Major + minor event picks to enter selection", tag: "NIFT Jodhpur rule" },
+            { k: REGISTRATION_OPEN ? "Open" : "Soon", v: "Registration status", tag: REGISTRATION_OPEN ? "Live now" : "Opening soon" },
+          ].map((f, i) => (
+            <div
+              key={f.v}
+              className={clsx(
+                "border-ink/15 py-6 pr-4",
+                i % 2 === 0 && "border-r",
+                i < 2 && "border-b lg:border-b-0",
+                i > 0 && "lg:pl-6",
+                i === 1 && "pl-4",
+                i === 3 && "pl-4",
+                i < 3 && "lg:border-r"
+              )}
+            >
+              <dt className="label text-ink-soft">{f.tag}</dt>
+              <dd className="display mt-2 text-6xl sm:text-7xl">{f.k}</dd>
+              <dd className="mt-2 max-w-[16rem] text-sm leading-snug text-ink-soft">{f.v}</dd>
             </div>
           ))}
-        </div>
-        <p className="mt-6 text-sm text-cream-dim">
-          Celebrating talent, teamwork, and diversity, the festival fosters camaraderie, healthy
-          competition, and the spirit of unity while strengthening the vibrant NIFT community.
-        </p>
+        </dl>
       </section>
 
-      {/* HOW WILL YOU GET SELECTED */}
-      <section className="border-y border-gold/15 bg-ink/40 py-16">
-        <div className="mx-auto max-w-5xl px-5 sm:px-8">
-          <div className="mb-6 flex flex-wrap items-center gap-3">
-            <RuleTag type="jodhpur" />
-          </div>
-          <SectionHeading
-            eyebrow="The most important section on this site"
-            title="How will you get selected?"
-            description="To be eligible for the NIFT Jodhpur internal selection process for CONVERGE 2026, every student must choose:"
-          />
+      <Marquee />
 
-          <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-            <div className="card-border rounded-2xl bg-gradient-to-br from-magenta/20 to-indigo/40 px-8 py-6 text-center">
-              <p className="font-display text-3xl font-bold text-gold-light">2</p>
-              <p className="mt-1 text-sm font-semibold uppercase tracking-wide text-cream">
-                Major Events
-              </p>
-            </div>
-            <span className="font-display text-2xl text-cream-dim">+</span>
-            <div className="card-border rounded-2xl bg-gradient-to-br from-teal/20 to-indigo/40 px-8 py-6 text-center">
-              <p className="font-display text-3xl font-bold text-gold-light">1</p>
-              <p className="mt-1 text-sm font-semibold uppercase tracking-wide text-cream">
-                Minor Event
-              </p>
-            </div>
+      {/* 2 + 1 */}
+      <section className="border-b-2 border-ink bg-marigold">
+        <div className="mx-auto grid max-w-[1400px] gap-10 px-4 py-16 sm:px-8 lg:grid-cols-12 lg:py-24">
+          <div className="lg:col-span-5">
+            <p className="label flex items-center gap-3">
+              01 <span className="h-px w-8 bg-ink/50" /> How you get in
+            </p>
+            <p className="display mt-6 text-[42vw] leading-[0.75] lg:text-[17rem]" aria-hidden>
+              2+1
+            </p>
           </div>
 
-          <div className="mt-10 rounded-2xl border border-gold/25 bg-ink/60 p-6 text-sm leading-relaxed text-cream-dim">
-            <p>
-              This 2 Major + 1 Minor requirement is NIFT Jodhpur&apos;s own internal selection
-              framework — it decides how our campus shortlists students for the final
-              contingent. It is <strong className="text-cream">not</strong> an official rule of
-              CONVERGE 2026 itself.
+          <div className="lg:col-span-7 lg:pt-10">
+            <RuleTag type="jodhpur" className="bg-paper" />
+            <h2 className="display mt-5 text-5xl sm:text-7xl">
+              Pick two major events and one minor.
+            </h2>
+            <p className="mt-5 max-w-xl text-lg leading-relaxed">
+              To enter NIFT Jodhpur&apos;s internal selection, every student chooses any{" "}
+              <strong>2 events as Major</strong> and any <strong>1 as Minor</strong> from
+              the full catalogue. This is our campus&apos;s own framework — it is not a rule
+              in the official CONVERGE 2026 Rule Book.
             </p>
-            <p className="mt-3">
-              <strong className="text-cream">Registration does not guarantee selection.</strong>{" "}
-              The final NIFT Jodhpur team will be shortlisted based on the internal selection
-              process and available participant slots, up to a maximum of 50 students.
-            </p>
+
+            <ol className="mt-8 grid gap-3 sm:grid-cols-3">
+              {["Major 01", "Major 02", "Minor"].map((slot, i) => (
+                <li key={slot} className="border-2 border-ink bg-paper">
+                  <p className={clsx("label border-b-2 border-ink px-3 py-2", i < 2 ? "bg-ink text-paper" : "bg-paper")}>
+                    {slot}
+                  </p>
+                  <p className="px-3 py-4 text-sm text-ink-soft">Any event you choose</p>
+                </li>
+              ))}
+            </ol>
+
+            <div className="mt-8 flex gap-4 border-2 border-ink bg-ink p-5 text-paper">
+              <span className="display text-4xl text-marigold" aria-hidden>!</span>
+              <p className="text-sm leading-relaxed">
+                <strong className="text-paper">Registering is not the same as being selected.</strong>{" "}
+                <span className="text-paper/75">
+                  The final team is shortlisted through screening and trials, within the slots
+                  available per event — up to 50 students in total.
+                </span>
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* EVENTS PREVIEW */}
-      <section className="mx-auto max-w-6xl px-5 py-16 sm:px-8">
+      {/* ARENAS */}
+      <section className="mx-auto max-w-[1400px] px-4 py-16 sm:px-8 lg:py-24">
         <SectionHeading
-          eyebrow="Event Explorer"
-          title="Browse events by category"
-          description="Every event below is sourced directly from the official CONVERGE 2026 Rule Book."
+          index="02"
+          kicker="Five arenas"
+          title={<>Where you<br />can compete</>}
+          intro="Every event, format and participant limit on this site is taken directly from the official CONVERGE 2026 Rule Book."
         />
-        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {(Object.keys(CATEGORY_META) as (keyof typeof CATEGORY_META)[]).map((key) => (
-            <CategoryCard
-              key={key}
-              slug={key}
-              label={CATEGORY_META[key].label}
-              description={CATEGORY_META[key].description}
-              count={getEventsByCategory(key).length}
-            />
-          ))}
-        </div>
+
+        <ul className="mt-12 border-t-2 border-ink">
+          {CATEGORY_ORDER.map((key, i) => {
+            const meta = CATEGORY_META[key];
+            const count = getEventsByCategory(key).length;
+            return (
+              <li key={key}>
+                <Link
+                  href={`/events/${key}`}
+                  className={clsx(
+                    "group grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-x-3 sm:gap-x-4 gap-y-2 border-b-2 border-ink px-2 py-6 transition-colors duration-200 sm:px-4 lg:grid-cols-[4rem_1.3fr_1fr_8rem_3rem] lg:py-8",
+                    ARENA_HOVER[key]
+                  )}
+                >
+                  <span className="text-sm font-bold tabular-nums">0{i + 1}</span>
+                  <span className="display text-4xl sm:text-6xl lg:text-7xl">{meta.label}</span>
+                  <ArrowUpRight
+                    size={30}
+                    className="transition-transform group-hover:-translate-y-1 group-hover:translate-x-1 lg:order-last"
+                    aria-hidden
+                  />
+                  <span className="col-start-2 col-end-4 text-sm leading-relaxed opacity-80 lg:col-auto">
+                    {meta.description}
+                  </span>
+                  <span className="col-start-2 label lg:col-auto lg:text-right">{count} events</span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
       </section>
 
-      {/* YOUR CONVERGE JOURNEY */}
-      <section className="border-y border-gold/15 bg-ink/40 py-16">
-        <div className="mx-auto max-w-6xl px-5 sm:px-8">
+      {/* JOURNEY */}
+      <section className="border-y-2 border-ink bg-blue text-paper">
+        <div className="mx-auto max-w-[1400px] px-4 py-16 sm:px-8 lg:py-24">
           <SectionHeading
-            eyebrow="Your Converge Journey"
-            title="From registration to the final 50"
-            align="center"
+            index="03"
+            kicker="Your Converge journey"
+            title={<>From form<br />to final fifty</>}
+            intro="Six stages between registering your interest and travelling with the contingent."
+            invert
           />
-          <div className="mt-10">
-            <SelectionJourney />
+          <div className="mt-14">
+            <SelectionJourney invert />
           </div>
         </div>
       </section>
 
       {/* FINAL 50 */}
-      <section className="mx-auto max-w-5xl px-5 py-16 sm:px-8">
-        <div className="card-border flex flex-col items-center gap-6 rounded-3xl bg-gradient-to-br from-indigo/60 to-maroon/30 p-10 text-center">
-          <Trophy className="text-gold-light" size={32} />
-          <h2 className="font-display text-3xl font-semibold text-cream">The Final 50</h2>
-          <p className="max-w-2xl text-sm leading-relaxed text-cream-dim">
-            As per the official CONVERGE 2026 rules, NIFT Jodhpur can send a maximum of{" "}
-            <strong className="text-cream">50 participants</strong> to CONVERGE 2026. The final
-            contingent, including event registrations and substitutes, will be managed and
-            submitted through the Campus SDAC. Not every registered student will travel —
-            selection depends on the internal screening process and available slots per event.
+      <section className="mx-auto grid max-w-[1400px] items-end gap-8 px-4 py-16 sm:px-8 lg:grid-cols-12 lg:py-24">
+        <p className="display text-[48vw] leading-[0.72] text-sindoor lg:col-span-6 lg:text-[24rem]" aria-hidden>
+          50
+        </p>
+        <div className="lg:col-span-6 lg:pb-6">
+          <p className="label flex items-center gap-3 text-ink-soft">
+            04 <span className="h-px w-8 bg-ink/40" /> The final fifty
           </p>
-          <RuleTag type="official" />
+          <h2 className="display mt-4 text-5xl sm:text-7xl">Fifty seats. That&apos;s the whole team.</h2>
+          <p className="mt-5 max-w-lg text-lg leading-relaxed text-ink-soft">
+            Each campus can bring at most 50 participants to CONVERGE 2026, including
+            substitutes. The Campus SDAC registers the final list. Not everyone who registers
+            here will travel.
+          </p>
+          <RuleTag type="official" className="mt-6" />
         </div>
       </section>
 
-      {/* FINAL CTA */}
-      <section className="relative overflow-hidden border-t border-gold/15 bg-gradient-to-br from-ink via-indigo/60 to-maroon/40 py-20">
-        <div className="mx-auto max-w-3xl px-5 text-center sm:px-8">
-          <h2 className="font-display text-3xl font-bold text-cream sm:text-4xl">
-            Ready to represent NIFT Jodhpur?
+      {/* CTA */}
+      <section className="border-t-2 border-ink bg-sindoor text-paper">
+        <div className="mx-auto flex max-w-[1400px] flex-col gap-10 px-4 py-16 sm:px-8 lg:flex-row lg:items-end lg:justify-between lg:py-20">
+          <h2 className="display text-6xl sm:text-8xl lg:text-[7.5rem]">
+            Ready to<br />represent<br />Jodhpur?
           </h2>
-          <p className="mt-4 text-cream-dim">
-            Explore the events. Read the rules. Choose your events. Get ready for the selection
-            process.
-          </p>
-          <div className="mt-8 flex justify-center">
-            <RegisterCta />
+          <div className="max-w-sm lg:pb-3">
+            <p className="text-lg leading-relaxed text-paper/85">
+              Read the rules, shortlist your three events, and be ready when registration opens.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-4">
+              <RegisterCta tone="paper" />
+            </div>
           </div>
-          <p className="mt-6 text-xs uppercase tracking-[0.3em] text-gold-light">
-            NIFT Jodhpur × Converge 2026
-          </p>
         </div>
       </section>
-    </div>
+    </>
   );
 }

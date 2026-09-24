@@ -1,13 +1,13 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
-import SectionHeading from "@/components/SectionHeading";
-import EventCard from "@/components/EventCard";
-import { CATEGORY_META, EventCategory } from "@/lib/types";
+import clsx from "clsx";
+import PageHeader from "@/components/PageHeader";
+import EventRow from "@/components/EventRow";
+import { CATEGORY_META, CATEGORY_ORDER, EventCategory } from "@/lib/types";
 import { getEventsByCategory } from "@/lib/events";
 
 export function generateStaticParams() {
-  return Object.keys(CATEGORY_META).map((category) => ({ category }));
+  return CATEGORY_ORDER.map((category) => ({ category }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ category: string }> }) {
@@ -26,26 +26,52 @@ export default async function CategoryPage({
   if (!meta) notFound();
 
   const events = getEventsByCategory(category);
+  const idx = CATEGORY_ORDER.indexOf(category as EventCategory);
 
   return (
-    <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8">
-      <Link href="/events" className="inline-flex items-center gap-1.5 text-sm text-cream-dim hover:text-cream">
-        <ChevronLeft size={16} /> All events
-      </Link>
+    <>
+      <PageHeader
+        back={{ href: "/events", label: "All events" }}
+        kicker={`Arena 0${idx + 1} · ${events.length} events`}
+        title={meta.label}
+        intro={meta.description}
+        tone={clsx(meta.bg, meta.onColor)}
+      />
 
-      <div className="mt-6">
-        <SectionHeading
-          eyebrow={`${events.length} Events`}
-          title={meta.label}
-          description={meta.description}
-        />
-      </div>
+      <div className="mx-auto max-w-[1400px] px-4 pb-20 sm:px-8">
+        <div className="hidden grid-cols-[3rem_1fr_9rem_7rem_13rem_2rem] gap-x-4 border-b border-ink/15 py-3 pl-4 pr-2 text-ink-soft md:grid">
+          <span className="label">No.</span>
+          <span className="label">Event</span>
+          <span />
+          <span className="label">Format</span>
+          <span className="label">Participants / campus</span>
+          <span />
+        </div>
+        <ul>
+          {events.map((event, i) => (
+            <EventRow key={event.slug} event={event} index={i} showArena={false} />
+          ))}
+        </ul>
 
-      <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {events.map((event) => (
-          <EventCard key={event.slug} event={event} />
-        ))}
+        <nav className="mt-16" aria-label="Other arenas">
+          <p className="label text-ink-soft">Other arenas</p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            {CATEGORY_ORDER.filter((c) => c !== category).map((c) => (
+              <Link
+                key={c}
+                href={`/events/${c}`}
+                className={clsx(
+                  "btn-print border-2 border-ink px-4 py-2.5 text-sm font-bold uppercase tracking-wide",
+                  CATEGORY_META[c].bg,
+                  CATEGORY_META[c].onColor
+                )}
+              >
+                {CATEGORY_META[c].label}
+              </Link>
+            ))}
+          </div>
+        </nav>
       </div>
-    </div>
+    </>
   );
 }

@@ -1,66 +1,67 @@
 import Link from "next/link";
+import { CATEGORY_META, CATEGORY_ORDER } from "@/lib/types";
 
 export default function Footer() {
   return (
-    <footer className="border-t border-gold/15 bg-ink">
-      <div className="mx-auto max-w-7xl px-5 py-14 sm:px-8">
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
-          <div>
-            <p className="font-display text-lg font-semibold text-cream">NIFT JODHPUR</p>
-            <p className="font-display text-sm text-gold-light">CONVERGE 2026</p>
-            <p className="mt-1 text-xs uppercase tracking-[0.25em] text-cream-dim">Rang Regalia</p>
-            <p className="mt-4 text-sm leading-relaxed text-cream-dim">
-              The official NIFT Jodhpur student gateway for CONVERGE 2026 — not a
-              replacement for the official CONVERGE registration system.
+    <footer className="bg-ink text-paper">
+      <div className="border-zigzag bg-paper" />
+      <div className="mx-auto max-w-[1400px] px-4 pb-10 pt-16 sm:px-8">
+        <div className="grid gap-12 lg:grid-cols-12">
+          <div className="lg:col-span-5">
+            <p className="font-serif text-3xl italic leading-snug text-paper/90">
+              Rang Regalia —{" "}
+              <span className="font-deva not-italic">काव्य · कला · क्रीड़ा</span>
+            </p>
+            <p className="mt-5 max-w-sm text-sm leading-relaxed text-paper/60">
+              NIFT Jodhpur&apos;s student gateway for CONVERGE 2026. This is not the official
+              CONVERGE registration system — always follow communication from NIFT, the
+              CONVERGE 2026 Organising Committee and your Campus SDAC.
             </p>
           </div>
 
-          <div>
-            <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-gold-light">
-              Explore
-            </p>
-            <ul className="space-y-2.5 text-sm text-cream-dim">
-              <li><Link href="/events" className="hover:text-cream">Events</Link></li>
-              <li><Link href="/selection" className="hover:text-cream">Selection Process</Link></li>
-              <li><Link href="/rulebook" className="hover:text-cream">Rulebook</Link></li>
-              <li><Link href="/register" className="hover:text-cream">Registration</Link></li>
-              <li><Link href="/faq" className="hover:text-cream">FAQ</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-gold-light">
-              Categories
-            </p>
-            <ul className="space-y-2.5 text-sm text-cream-dim">
-              <li><Link href="/events/sports" className="hover:text-cream">Sports</Link></li>
-              <li><Link href="/events/cultural" className="hover:text-cream">Cultural</Link></li>
-              <li><Link href="/events/literary" className="hover:text-cream">Literary & Creative</Link></li>
-              <li><Link href="/events/esse" className="hover:text-cream">ESSE</Link></li>
-              <li><Link href="/events/photography" className="hover:text-cream">Adventure & Photography</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-gold-light">
-              NIFT Jodhpur Contact
-            </p>
-            <div className="rounded-xl border border-dashed border-gold/30 bg-gold/5 p-4 text-xs leading-relaxed text-cream-dim">
-              Campus SDAC contact details will be published here by NIFT Jodhpur.
-              <span className="mt-2 block font-semibold text-gold-light">
-                [ PLACEHOLDER — TO BE ANNOUNCED ]
-              </span>
+          <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:col-span-7">
+            <div>
+              <p className="label mb-4 text-marigold">Portal</p>
+              <ul className="space-y-2.5 text-sm text-paper/75">
+                <li><Link href="/converge" className="hover:text-paper hover:underline">About Converge</Link></li>
+                <li><Link href="/events" className="hover:text-paper hover:underline">All events</Link></li>
+                <li><Link href="/selection" className="hover:text-paper hover:underline">How selection works</Link></li>
+                <li><Link href="/rulebook" className="hover:text-paper hover:underline">Rulebook</Link></li>
+                <li><Link href="/register" className="hover:text-paper hover:underline">Register</Link></li>
+                <li><Link href="/faq" className="hover:text-paper hover:underline">FAQ</Link></li>
+              </ul>
+            </div>
+            <div>
+              <p className="label mb-4 text-marigold">Arenas</p>
+              <ul className="space-y-2.5 text-sm text-paper/75">
+                {CATEGORY_ORDER.map((c) => (
+                  <li key={c}>
+                    <Link href={`/events/${c}`} className="hover:text-paper hover:underline">
+                      {CATEGORY_META[c].label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="col-span-2 sm:col-span-1">
+              <p className="label mb-4 text-marigold">Contact</p>
+              <p className="border border-dashed border-paper/30 p-3 text-xs leading-relaxed text-paper/60">
+                NIFT Jodhpur Campus SDAC contact details will be published here.
+                <span className="label mt-2 block text-paper/85">To be announced</span>
+              </p>
             </div>
           </div>
         </div>
 
-        <div className="mt-12 border-t border-gold/10 pt-6 text-xs text-cream-dim">
-          <p>
-            For official information, always follow communications issued by NIFT / CONVERGE 2026 / Campus SDAC.
+        <div className="fit-container mt-16">
+          <p className="display select-none leading-[0.8] text-paper [font-size:calc(100cqw/5.1)]" aria-hidden>
+            Converge<span className="text-sindoor">’26</span>
           </p>
-          <p className="mt-2">
-            © 2026 NIFT Jodhpur Converge Selection Portal. Event rules sourced from the official CONVERGE 2026 Rule Book.
-          </p>
+        </div>
+
+        <div className="mt-6 flex flex-col justify-between gap-2 border-t border-paper/20 pt-5 text-xs text-paper/50 sm:flex-row">
+          <p>© 2026 NIFT Jodhpur · Converge selection portal</p>
+          <p>Event rules sourced from the official CONVERGE 2026 Rule Book.</p>
         </div>
       </div>
     </footer>

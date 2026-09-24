@@ -1,35 +1,37 @@
 import Link from "next/link";
-import { REGISTRATION_OPEN } from "@/lib/registration-status";
+import { ArrowRight } from "lucide-react";
 import clsx from "clsx";
+import { REGISTRATION_OPEN } from "@/lib/registration-status";
 
 interface RegisterCtaProps {
   className?: string;
-  variant?: "solid" | "outline";
+  tone?: "blue" | "ink" | "paper";
   size?: "sm" | "lg";
 }
 
-export default function RegisterCta({
-  className,
-  variant = "solid",
-  size = "lg",
-}: RegisterCtaProps) {
-  const label = REGISTRATION_OPEN ? "REGISTER NOW" : "REGISTRATION OPENING SOON";
-  const href = "/register";
+export default function RegisterCta({ className, tone = "blue", size = "lg" }: RegisterCtaProps) {
+  const label = REGISTRATION_OPEN ? "Register now" : "Registration opening soon";
 
   return (
     <Link
-      href={href}
+      href="/register"
       className={clsx(
-        "inline-flex items-center justify-center gap-2 rounded-full font-semibold tracking-wide uppercase transition-all duration-300",
-        size === "lg" ? "px-8 py-4 text-sm" : "px-5 py-2.5 text-xs",
-        variant === "solid"
-          ? "bg-gradient-to-r from-gold-light via-gold to-magenta text-ink shadow-lg shadow-gold/20 hover:shadow-xl hover:shadow-magenta/30 hover:-translate-y-0.5"
-          : "border border-gold/50 text-cream hover:bg-gold/10 hover:border-gold",
-        !REGISTRATION_OPEN && variant === "solid" && "opacity-90",
+        "btn-print inline-flex items-center justify-center gap-3 border-2 border-ink font-bold uppercase tracking-wide",
+        size === "lg" ? "px-6 py-4 text-sm" : "px-4 py-2.5 text-xs",
+        tone === "blue" && "bg-blue text-paper",
+        tone === "ink" && "bg-ink text-paper",
+        tone === "paper" && "bg-paper text-ink",
         className
       )}
     >
+      {!REGISTRATION_OPEN && (
+        <span className="relative flex h-2 w-2" aria-hidden>
+          <span className="absolute inline-flex h-full w-full animate-ping bg-marigold opacity-75 motion-reduce:animate-none" />
+          <span className="relative inline-flex h-2 w-2 bg-marigold" />
+        </span>
+      )}
       {label}
+      <ArrowRight size={size === "lg" ? 18 : 14} strokeWidth={2.5} />
     </Link>
   );
 }

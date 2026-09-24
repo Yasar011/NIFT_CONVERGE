@@ -1,5 +1,6 @@
-import SectionHeading from "@/components/SectionHeading";
+import PageHeader from "@/components/PageHeader";
 import EventsExplorer from "@/components/EventsExplorer";
+import { EVENTS } from "@/lib/events";
 
 export const metadata = {
   title: "Events | NIFT Jodhpur Converge 2026",
@@ -7,15 +8,15 @@ export const metadata = {
 
 export default function EventsPage() {
   return (
-    <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8">
-      <SectionHeading
-        eyebrow="Event Explorer"
-        title="All CONVERGE 2026 events"
-        description="Search or filter by category. Every event, its participant requirements and rules are sourced directly from the official CONVERGE 2026 Rule Book."
+    <>
+      <PageHeader
+        kicker={`${EVENTS.length} events · 5 arenas`}
+        title={<>The full<br />programme</>}
+        intro="Every event, participant limit and rule here is taken from the official CONVERGE 2026 Rule Book. Filter by arena or search by name."
       />
-      <div className="mt-10">
+      <div className="mx-auto max-w-[1400px] px-4 pb-24 sm:px-8">
         <EventsExplorer />
       </div>
-    </div>
+    </>
   );
 }

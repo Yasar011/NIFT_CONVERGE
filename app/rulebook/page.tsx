@@ -1,127 +1,158 @@
-import { Download, FileText } from "lucide-react";
-import SectionHeading from "@/components/SectionHeading";
+import { ArrowDownToLine } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
 import RuleTag from "@/components/RuleTag";
 import { GENERAL_GUIDELINES, CONVERGE_CUP, FAIR_PLAY_AWARD, KNOW_BEFORE_YOU_REGISTER } from "@/lib/rulebook";
 
 export const metadata = { title: "Official Rulebook | NIFT Jodhpur Converge 2026" };
 
-const QUICK_SUMMARY = [
-  { title: "General Guidelines", desc: "Registration, ID cards, reporting times, conduct, safety and dispute resolution rules that apply across all of Converge." },
-  { title: "Sports Rules", desc: "Event-wise rules for athletics, court sports, table games, esports and powerlifting." },
-  { title: "Cultural Rules", desc: "Rules for the opening parade, Ms. & Mr. Converge, singing, dance, band and design showcase events." },
-  { title: "ESSE Rules", desc: "Rules for street play, monologue, face painting and stand-up comedy." },
-  { title: "Literary Rules", desc: "Rules for Brush Battle, Mime, Imaginarium, Ad-Mad, Meme Making and Big Bait." },
-  { title: "Adventure & Photography Rules", desc: "Rules for Short Film, Concept Photography and Reel Making." },
-  { title: "Converge Cup", desc: "The overall championship, awarded on cumulative Gold/Silver/Bronze points across all events." },
-  { title: "Campus & Travel Information", desc: "Host-campus logistics, published by the host campus — not applicable to NIFT Jodhpur's own travel arrangements." },
+const PDF = "/documents/converge-2026-rulebook.pdf";
+
+const TOC = [
+  { id: "know", label: "Know before you register" },
+  { id: "guidelines", label: "General guidelines" },
+  { id: "cup", label: "Converge Cup" },
+  { id: "fair-play", label: "Fair Play Award" },
+  { id: "host", label: "Host campus information" },
 ];
+
+const MEDAL_BG = ["bg-marigold text-ink", "bg-paper-2 text-ink", "bg-sindoor text-paper"];
 
 export default function RulebookPage() {
   return (
-    <div className="mx-auto max-w-4xl px-5 py-16 sm:px-8">
-      <RuleTag type="official" />
-      <div className="mt-4">
-        <SectionHeading
-          eyebrow="Single source of truth"
-          title="Official Rulebook"
-          description="CONVERGE 2026 Rule Book — every event, format, and rule on this site is drawn directly from this document."
-        />
-      </div>
-
-      <a
-        href="/documents/converge-2026-rulebook.pdf"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mt-8 inline-flex items-center gap-3 rounded-2xl border border-gold/40 bg-gradient-to-r from-gold-light/20 to-magenta/20 px-6 py-4 font-semibold text-cream transition-colors hover:border-gold"
+    <>
+      <PageHeader
+        kicker="Single source of truth"
+        title={<>The<br />rulebook</>}
+        intro="Every event and rule on this portal comes from the official CONVERGE 2026 Rule Book. Here's the summary — the PDF has everything."
+        tone="bg-ink text-paper"
       >
-        <FileText className="text-gold-light" size={22} />
-        <span>CONVERGE 2026 Rule Book</span>
-        <Download size={18} className="text-gold-light" />
-      </a>
-      <p className="mt-2 text-xs text-cream-dim">Opens the official PDF in a new tab.</p>
+        <a
+          href={PDF}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn-print mt-10 inline-flex items-center gap-4 border-2 border-paper bg-marigold px-6 py-4 text-ink"
+          style={{ ["--btn-shadow" as string]: "var(--paper)" }}
+        >
+          <ArrowDownToLine size={22} strokeWidth={2.5} />
+          <span>
+            <span className="block text-sm font-bold uppercase tracking-wide">Open the full Rule Book</span>
+            <span className="block text-xs">CONVERGE 2026 · PDF · 9.5 MB</span>
+          </span>
+        </a>
+      </PageHeader>
 
-      <div className="mt-14">
-        <h2 className="font-display text-2xl font-semibold text-cream">Quick Summary</h2>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          {QUICK_SUMMARY.map((s) => (
-            <div key={s.title} className="card-border rounded-2xl bg-indigo/40 p-5">
-              <p className="font-display text-base font-semibold text-cream">{s.title}</p>
-              <p className="mt-2 text-xs leading-relaxed text-cream-dim">{s.desc}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-14">
-        <h2 className="font-display text-2xl font-semibold text-cream">General Guidelines</h2>
-        <div className="mt-6 space-y-5">
-          {GENERAL_GUIDELINES.map((g) => (
-            <div key={g.title} className="rounded-2xl border border-gold/15 bg-ink/50 p-5">
-              <p className="font-display text-sm font-semibold text-gold-light">{g.title}</p>
-              <ul className="mt-2 space-y-1.5">
-                {g.points.map((p, i) => (
-                  <li key={i} className="flex gap-2.5 text-sm leading-relaxed text-cream-dim">
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-gold" />
-                    {p}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-14">
-        <h2 className="font-display text-2xl font-semibold text-cream">Know Before You Register</h2>
-        <div className="mt-6 grid gap-2.5 sm:grid-cols-2">
-          {KNOW_BEFORE_YOU_REGISTER.map((r, i) => (
-            <div key={i} className="flex gap-2.5 rounded-xl bg-indigo/30 p-3.5 text-sm leading-relaxed text-cream-dim">
-              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-magenta" />
-              {r}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-14 grid gap-6 sm:grid-cols-2">
-        <div className="rounded-2xl border border-gold/25 bg-gradient-to-br from-indigo/50 to-maroon/20 p-6">
-          <p className="font-display text-lg font-semibold text-cream">Converge Cup</p>
-          <p className="mt-2 text-sm leading-relaxed text-cream-dim">{CONVERGE_CUP.description}</p>
-          <div className="mt-4 flex gap-4">
-            {CONVERGE_CUP.points.map((p) => (
-              <div key={p.position} className="text-center">
-                <p className="font-display text-xl font-bold text-gold-light">{p.points}</p>
-                <p className="text-xs text-cream-dim">{p.position}</p>
-              </div>
-            ))}
+      <div className="mx-auto grid max-w-[1400px] gap-12 px-4 py-12 sm:px-8 lg:grid-cols-12 lg:py-16">
+        <nav className="lg:col-span-3" aria-label="On this page">
+          <div className="lg:sticky lg:top-24">
+            <p className="label text-ink-soft">On this page</p>
+            <ol className="mt-4 border-t-2 border-ink">
+              {TOC.map((t, i) => (
+                <li key={t.id}>
+                  <a href={`#${t.id}`} className="flex gap-3 border-b border-ink/15 py-3 text-sm font-semibold hover:bg-paper-2">
+                    <span className="w-6 text-xs tabular-nums text-ink-soft">0{i + 1}</span>
+                    {t.label}
+                  </a>
+                </li>
+              ))}
+            </ol>
+            <RuleTag type="official" className="mt-6" />
           </div>
-          <p className="mt-4 text-xs text-cream-dim">{CONVERGE_CUP.tiebreaker}</p>
-        </div>
+        </nav>
 
-        <div className="rounded-2xl border border-gold/25 bg-gradient-to-br from-indigo/50 to-maroon/20 p-6">
-          <p className="font-display text-lg font-semibold text-cream">Fair Play Award</p>
-          <p className="mt-2 text-sm leading-relaxed text-cream-dim">{FAIR_PLAY_AWARD.description}</p>
-          <ul className="mt-4 space-y-1.5">
-            {FAIR_PLAY_AWARD.criteria.map((c) => (
-              <li key={c.name} className="flex justify-between text-xs text-cream-dim">
-                <span>{c.name}</span>
-                <span className="text-gold-light">{c.marks} marks</span>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-3 text-xs font-semibold text-cream">Total: {FAIR_PLAY_AWARD.totalMarks} marks</p>
+        <div className="space-y-20 lg:col-span-9">
+          <section id="know" className="scroll-mt-24">
+            <h2 className="display text-5xl sm:text-6xl">Know before you register</h2>
+            <ol className="mt-8 grid border-t-2 border-ink sm:grid-cols-2">
+              {KNOW_BEFORE_YOU_REGISTER.map((r, i) => (
+                <li key={i} className="grid grid-cols-[2.25rem_1fr] border-b border-ink/15 py-4 pr-4 leading-relaxed sm:odd:border-r sm:even:pl-4">
+                  <span className="pt-0.5 text-xs font-bold tabular-nums text-ink-soft">{String(i + 1).padStart(2, "0")}</span>
+                  <span>{r}</span>
+                </li>
+              ))}
+            </ol>
+          </section>
+
+          <section id="guidelines" className="scroll-mt-24">
+            <h2 className="display text-5xl sm:text-6xl">General guidelines</h2>
+            <div className="mt-8 border-t-2 border-ink">
+              {GENERAL_GUIDELINES.map((g, i) => (
+                <div key={g.title} className="grid gap-3 border-b border-ink/15 py-6 md:grid-cols-[16rem_1fr] md:gap-8">
+                  <h3 className="display-md flex gap-3 text-2xl">
+                    <span className="pt-1 text-xs font-bold tabular-nums text-ink-soft">{String(i + 1).padStart(2, "0")}</span>
+                    {g.title}
+                  </h3>
+                  <ul className="space-y-2">
+                    {g.points.map((p, j) => (
+                      <li key={j} className="flex gap-3 leading-relaxed text-ink-soft">
+                        <span className="mt-2.5 h-1.5 w-1.5 shrink-0 bg-ink" aria-hidden />
+                        {p}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section id="cup" className="scroll-mt-24">
+            <h2 className="display text-5xl sm:text-6xl">Converge Cup</h2>
+            <p className="mt-4 max-w-2xl text-lg leading-relaxed text-ink-soft">{CONVERGE_CUP.description}</p>
+            <div className="mt-8 grid grid-cols-3 border-2 border-ink">
+              {CONVERGE_CUP.points.map((p, i) => (
+                <div key={p.position} className={`${MEDAL_BG[i]} p-5 ${i < 2 ? "border-r-2 border-ink" : ""}`}>
+                  <p className="label">{p.position}</p>
+                  <p className="display mt-2 text-7xl sm:text-8xl">{p.points}</p>
+                  <p className="text-sm">points</p>
+                </div>
+              ))}
+            </div>
+            <p className="mt-4 text-sm text-ink-soft">{CONVERGE_CUP.tiebreaker}</p>
+          </section>
+
+          <section id="fair-play" className="scroll-mt-24">
+            <h2 className="display text-5xl sm:text-6xl">Fair Play Award</h2>
+            <p className="mt-4 max-w-2xl text-lg leading-relaxed text-ink-soft">{FAIR_PLAY_AWARD.description}</p>
+            <table className="mt-8 w-full border-collapse text-left">
+              <thead>
+                <tr className="border-b-2 border-ink">
+                  <th className="label py-3 text-ink-soft">Criterion</th>
+                  <th className="label py-3 text-right text-ink-soft">Marks</th>
+                </tr>
+              </thead>
+              <tbody>
+                {FAIR_PLAY_AWARD.criteria.map((c) => (
+                  <tr key={c.name} className="border-b border-ink/15">
+                    <td className="py-3 font-semibold">{c.name}</td>
+                    <td className="py-3 text-right tabular-nums">{c.marks}</td>
+                  </tr>
+                ))}
+                <tr className="border-b-2 border-ink">
+                  <td className="py-3 font-bold uppercase">Total</td>
+                  <td className="display py-3 text-right text-3xl">{FAIR_PLAY_AWARD.totalMarks}</td>
+                </tr>
+              </tbody>
+            </table>
+            <details className="mt-4 text-sm text-ink-soft">
+              <summary className="cursor-pointer font-semibold text-ink">How ties are broken</summary>
+              <ol className="mt-3 list-decimal space-y-1 pl-5">
+                {FAIR_PLAY_AWARD.tiebreakerSteps.map((s) => (
+                  <li key={s}>{s}</li>
+                ))}
+              </ol>
+            </details>
+          </section>
+
+          <section id="host" className="scroll-mt-24 border-2 border-dashed border-ink/40 p-6 sm:p-8">
+            <p className="label text-sindoor">Host campus information</p>
+            <p className="mt-3 max-w-2xl leading-relaxed text-ink-soft">
+              The rulebook&apos;s Campus &amp; Travel Information Guide describes the host
+              campus for Converge 2026. It doesn&apos;t apply to NIFT Jodhpur&apos;s own
+              arrangements — travel, reporting and contingent logistics will be shared
+              separately by the NIFT Jodhpur Campus SDAC.
+            </p>
+          </section>
         </div>
       </div>
-
-      <div className="mt-14 rounded-2xl border border-dashed border-gold/30 bg-gold/5 p-6 text-sm leading-relaxed text-cream-dim">
-        <p className="font-semibold text-gold-light">About the Campus & Travel Information Guide</p>
-        <p className="mt-2">
-          The official rulebook&apos;s Campus & Travel Information Guide describes the host
-          campus for Converge 2026. It does not apply to NIFT Jodhpur students — our own
-          travel, reporting and contingent logistics will be communicated separately by the
-          NIFT Jodhpur Campus SDAC.
-        </p>
-      </div>
-    </div>
+    </>
   );
 }

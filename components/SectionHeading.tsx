@@ -1,36 +1,40 @@
 import clsx from "clsx";
 
 export default function SectionHeading({
-  eyebrow,
+  index,
+  kicker,
   title,
-  description,
-  align = "left",
-  light = false,
+  intro,
+  className,
+  invert = false,
 }: {
-  eyebrow?: string;
-  title: string;
-  description?: string;
-  align?: "left" | "center";
-  light?: boolean;
+  index?: string;
+  kicker?: string;
+  title: React.ReactNode;
+  intro?: React.ReactNode;
+  className?: string;
+  invert?: boolean;
 }) {
   return (
-    <div className={clsx("max-w-2xl", align === "center" && "mx-auto text-center")}>
-      {eyebrow && (
-        <p className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-gold-light">
-          {eyebrow}
-        </p>
-      )}
-      <h2
-        className={clsx(
-          "font-display text-3xl font-semibold sm:text-4xl",
-          light ? "text-ink" : "text-cream"
+    <div className={clsx("grid gap-6 lg:grid-cols-12", className)}>
+      <div className="lg:col-span-7">
+        {(index || kicker) && (
+          <p className={clsx("label mb-4 flex items-center gap-3", invert ? "text-paper/70" : "text-ink-soft")}>
+            {index && <span className={invert ? "text-paper" : "text-ink"}>{index}</span>}
+            {index && kicker && <span className={clsx("h-px w-8", invert ? "bg-paper/50" : "bg-ink/40")} />}
+            {kicker}
+          </p>
         )}
-      >
-        {title}
-      </h2>
-      {description && (
-        <p className={clsx("mt-4 text-base leading-relaxed", light ? "text-ink/70" : "text-cream-dim")}>
-          {description}
+        <h2 className="display text-[3.2rem] sm:text-7xl lg:text-[5.5rem]">{title}</h2>
+      </div>
+      {intro && (
+        <p
+          className={clsx(
+            "max-w-md self-end text-base leading-relaxed lg:col-span-5 lg:justify-self-end",
+            invert ? "text-paper/80" : "text-ink-soft"
+          )}
+        >
+          {intro}
         </p>
       )}
     </div>

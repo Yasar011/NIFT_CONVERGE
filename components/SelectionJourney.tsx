@@ -1,29 +1,43 @@
+import clsx from "clsx";
+
 const STEPS = [
-  { n: "01", title: "Registration", desc: "Submit your interest with your details and your 2 Major + 1 Minor event picks." },
-  { n: "02", title: "Event Screening", desc: "Respective club coordinators review interest against event capacity and eligibility." },
-  { n: "03", title: "Selection / Trials", desc: "Shortlisted students may be called for trials, auditions, or interviews per event." },
-  { n: "04", title: "Shortlist", desc: "A provisional shortlist is released for each event category." },
-  { n: "05", title: "Final 50", desc: "The final NIFT Jodhpur contingent of up to 50 participants is confirmed by the Campus SDAC." },
-  { n: "06", title: "CONVERGE 2026", desc: "The final contingent travels and competes as Team NIFT Jodhpur." },
+  { title: "Register", desc: "Submit your details and your 2 Major + 1 Minor event picks." },
+  { title: "Screening", desc: "Club coordinators review interest against event slots and eligibility." },
+  { title: "Trials", desc: "Shortlisted students may be called for trials, auditions or interviews." },
+  { title: "Shortlist", desc: "A provisional shortlist is released for each event." },
+  { title: "Final 50", desc: "The Campus SDAC confirms the contingent of up to 50 students." },
+  { title: "Converge", desc: "The contingent travels and competes as Team NIFT Jodhpur." },
 ];
 
-export default function SelectionJourney() {
+export default function SelectionJourney({ invert = false }: { invert?: boolean }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+    <ol className="grid border-t-2 sm:grid-cols-2 lg:grid-cols-6" style={{ borderColor: "currentColor" }}>
       {STEPS.map((step, i) => (
-        <div key={step.n} className="relative flex flex-col">
-          <div className="card-border relative flex h-full flex-col rounded-2xl bg-indigo/40 p-5">
-            <span className="font-display text-2xl font-bold text-gold-light">{step.n}</span>
-            <p className="mt-2 font-display text-base font-semibold text-cream">{step.title}</p>
-            <p className="mt-2 text-xs leading-relaxed text-cream-dim">{step.desc}</p>
-          </div>
-          {i < STEPS.length - 1 && (
-            <div className="mt-2 flex justify-center lg:absolute lg:-right-3 lg:top-1/2 lg:mt-0 lg:-translate-y-1/2">
-              <span className="text-gold/60 lg:rotate-[-90deg]">↓</span>
-            </div>
+        <li
+          key={step.title}
+          className={clsx(
+            "relative border-b py-6 pr-5 lg:border-b-0 lg:border-r lg:pl-5 lg:first:pl-0 lg:last:border-r-0",
+            invert ? "border-paper/25" : "border-ink/15"
           )}
-        </div>
+        >
+          <span
+            className={clsx(
+              "absolute -top-[9px] left-0 h-4 w-4 border-2",
+              i > 0 && "lg:left-5",
+              i === STEPS.length - 1 ? "bg-marigold" : invert ? "bg-blue" : "bg-paper",
+              invert ? "border-paper" : "border-ink"
+            )}
+            aria-hidden
+          />
+          <p className={clsx("label", invert ? "text-paper/60" : "text-ink-soft")}>
+            Step {String(i + 1).padStart(2, "0")}
+          </p>
+          <p className="display-md mt-2 text-3xl">{step.title}</p>
+          <p className={clsx("mt-2 text-sm leading-relaxed", invert ? "text-paper/80" : "text-ink-soft")}>
+            {step.desc}
+          </p>
+        </li>
       ))}
-    </div>
+    </ol>
   );
 }
