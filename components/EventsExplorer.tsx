@@ -37,7 +37,7 @@ export default function EventsExplorer() {
     <div>
       <div className="sticky top-[58px] z-30 -mx-4 border-b-2 border-ink bg-paper px-4 sm:-mx-8 sm:px-8">
         <div className="flex flex-col gap-0 lg:flex-row lg:items-stretch lg:justify-between">
-          <div className="-mx-4 flex overflow-x-auto px-4 sm:mx-0 sm:px-0" role="tablist" aria-label="Filter by arena">
+          <div className="-mx-4 flex overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0" role="tablist" aria-label="Filter by arena">
             {tabs.map((t) => (
               <button
                 key={t.key}
@@ -55,7 +55,7 @@ export default function EventsExplorer() {
             ))}
           </div>
 
-          <label className="relative flex items-center border-t border-ink/15 lg:w-80 lg:border-l lg:border-t-0">
+          <label className="relative flex items-center border-t border-ink/15 lg:w-60 lg:shrink-0 lg:border-l xl:w-80 lg:border-t-0">
             <Search className="pointer-events-none absolute left-0 lg:left-4" size={18} aria-hidden />
             <span className="sr-only">Search events</span>
             <input

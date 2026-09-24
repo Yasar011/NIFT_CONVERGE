@@ -32,7 +32,7 @@ export default function Navbar() {
           <span className="display text-[2rem] leading-none">
             Converge<span className="text-sindoor">’26</span>
           </span>
-          <span className="hidden border-l-2 border-ink pl-3 text-[0.68rem] font-bold uppercase leading-tight tracking-[0.12em] sm:block">
+          <span className="hidden border-l-2 border-ink pl-3 text-[0.68rem] font-bold uppercase leading-tight tracking-[0.12em] sm:block lg:hidden xl:block">
             NIFT
             <br />
             Jodhpur
@@ -45,14 +45,14 @@ export default function Navbar() {
               key={link.href}
               href={link.href}
               className={clsx(
-                "flex items-center border-l border-ink/15 px-5 text-sm font-semibold uppercase tracking-wide transition-colors",
+                "flex items-center border-l border-ink/15 px-4 text-sm xl:px-5 font-semibold uppercase tracking-wide transition-colors",
                 isActive(link.href) ? "bg-ink text-paper" : "hover:bg-paper-2"
               )}
             >
               {link.label}
             </Link>
           ))}
-          <div className="flex items-center border-l border-ink/15 pl-5">
+          <div className="flex items-center border-l border-ink/15 pl-4 xl:pl-5">
             <RegisterCta size="sm" />
           </div>
         </div>

@@ -92,7 +92,7 @@ export default async function EventDetailPage({
             )}
           </>
         }
-        titleClass="text-[14vw] sm:text-7xl lg:text-[6.5rem]"
+        titleClass="text-[14vw] sm:text-7xl lg:text-[5.5rem] xl:text-[6.5rem]"
         intro={event.about}
         tone={clsx(meta.bg, meta.onColor)}
       />

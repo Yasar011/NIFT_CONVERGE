@@ -8,7 +8,7 @@ export default function PageHeader({
   intro,
   back,
   tone = "paper",
-  titleClass = "text-[17vw] sm:text-8xl lg:text-[8.5rem]",
+  titleClass = "text-[17vw] sm:text-8xl lg:text-[6.75rem] xl:text-[8.5rem]",
   children,
 }: {
   titleClass?: string;
