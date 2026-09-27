@@ -9,7 +9,7 @@ import Arches from "@/components/Arches";
 import Marquee from "@/components/Marquee";
 import { CATEGORY_META, CATEGORY_ORDER } from "@/lib/types";
 import { EVENTS, getEventsByCategory } from "@/lib/events";
-import { REGISTRATION_OPEN } from "@/lib/registration-status";
+import { getSettings } from "@/lib/server/settings";
 
 const ARENA_HOVER: Record<string, string> = {
   sports: "hover:bg-sindoor hover:text-paper",
@@ -19,7 +19,8 @@ const ARENA_HOVER: Record<string, string> = {
   photography: "hover:bg-peacock hover:text-paper",
 };
 
-export default function Home() {
+export default async function Home() {
+  const { registrationOpen: REGISTRATION_OPEN } = await getSettings();
   return (
     <>
       {/* HERO */}
@@ -80,7 +81,7 @@ export default function Home() {
           {[
             { k: "50", v: "Maximum students NIFT Jodhpur can send", tag: "Official rule" },
             { k: String(EVENTS.length), v: "Events across five arenas", tag: "From the rulebook" },
-            { k: "2+1", v: "Major + minor event picks to enter selection", tag: "NIFT Jodhpur rule" },
+            { k: "5→3", v: "Register for up to 5 events, get selected for up to 3", tag: "NIFT Jodhpur rule" },
             { k: REGISTRATION_OPEN ? "Open" : "Soon", v: "Registration status", tag: REGISTRATION_OPEN ? "Live now" : "Opening soon" },
           ].map((f, i) => (
             <div
@@ -105,7 +106,7 @@ export default function Home() {
 
       <Marquee />
 
-      {/* 2 + 1 */}
+      {/* 5 picks → 3 selections */}
       <section className="border-b-2 border-ink bg-marigold">
         <div className="mx-auto grid max-w-[1400px] gap-10 px-4 py-16 sm:px-8 lg:grid-cols-12 lg:py-24">
           <div className="lg:col-span-5">
@@ -113,29 +114,29 @@ export default function Home() {
               01 <span className="h-px w-8 bg-ink/50" /> How you get in
             </p>
             <p className="display mt-6 text-[42vw] leading-[0.75] lg:text-[17rem]" aria-hidden>
-              2+1
+              5→3
             </p>
           </div>
 
           <div className="lg:col-span-7 lg:pt-10">
             <RuleTag type="jodhpur" className="bg-paper" />
             <h2 className="display mt-5 text-5xl sm:text-7xl">
-              Pick two major events and one minor.
+              Pick up to five. Go for up to three.
             </h2>
             <p className="mt-5 max-w-xl text-lg leading-relaxed">
-              To enter NIFT Jodhpur&apos;s internal selection, every student chooses any{" "}
-              <strong>2 events as Major</strong> and any <strong>1 as Minor</strong> from
-              the full catalogue. This is our campus&apos;s own framework — it is not a rule
-              in the official CONVERGE 2026 Rule Book.
+              Every student picks <strong>2 Major</strong> and <strong>1 Minor</strong> event, plus up
+              to <strong>2 extras</strong>. You can be <strong>selected for at most 3</strong> — once
+              you are, your other events lock. This is NIFT Jodhpur&apos;s own framework, not a rule in
+              the official CONVERGE 2026 Rule Book.
             </p>
 
-            <ol className="mt-8 grid gap-3 sm:grid-cols-3">
-              {["Major 01", "Major 02", "Minor"].map((slot, i) => (
-                <li key={slot} className="border-2 border-ink bg-paper">
-                  <p className={clsx("label border-b-2 border-ink px-3 py-2", i < 2 ? "bg-ink text-paper" : "bg-paper")}>
+            <ol className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-5">
+              {["Major 01", "Major 02", "Minor", "Extra 01", "Extra 02"].map((slot, i) => (
+                <li key={slot} className={clsx("border-2 bg-paper", i < 3 ? "border-ink" : "border-dashed border-ink/60")}>
+                  <p className={clsx("label border-b-2 px-3 py-2", i < 2 ? "border-ink bg-ink text-paper" : i === 2 ? "border-ink bg-paper" : "border-ink/30 bg-paper-2")}>
                     {slot}
                   </p>
-                  <p className="px-3 py-4 text-sm text-ink-soft">Any event you choose</p>
+                  <p className="px-3 py-3 text-sm text-ink-soft">{i < 3 ? "Required" : "Optional"}</p>
                 </li>
               ))}
             </ol>

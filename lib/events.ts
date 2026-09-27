@@ -1109,3 +1109,49 @@ export function getEventsByCategory(category: string) {
 export function getEventBySlug(category: string, slug: string) {
   return EVENTS.find((e) => e.category === category && e.slug === slug);
 }
+
+// ---- Keys, capacity and eligibility (used by registration + selection) ----
+
+export type EventKey = `${string}:${string}`;
+
+export function eventKey(e: ConvergeEvent): EventKey {
+  return `${e.category}:${e.slug}`;
+}
+
+export function getEventByKey(key: string) {
+  const [category, slug] = key.split(":");
+  return getEventBySlug(category, slug);
+}
+
+/** Events a student can pick (the opening parade is compulsory, not pickable). */
+export const PICKABLE_EVENTS = EVENTS.filter((e) => !e.nonCompetitive);
+
+// Where the rulebook's participant label doesn't reduce to a single number.
+const CAPACITY_OVERRIDES: Record<string, number> = {
+  "sports:powerlifting-boys": 3, // one per weight category (60 / 70 / 80 kg)
+  "photography:short-film": 2, // solo or duet
+};
+
+/**
+ * How many NIFT Jodhpur students can be selected for an event: the rulebook's
+ * participants per campus plus its substitutes.
+ */
+export function capacityOf(e: ConvergeEvent): number {
+  const key = eventKey(e);
+  if (CAPACITY_OVERRIDES[key]) return CAPACITY_OVERRIDES[key];
+  const base = e.participantsCount ?? 1;
+  const subs = (e.substitutes?.match(/\d+/g) ?? []).reduce((n, d) => n + Number(d), 0);
+  return base + subs;
+}
+
+/** "Male" / "Female" if the event is gender-specific, otherwise null. */
+export function genderRequirement(e: ConvergeEvent): "Male" | "Female" | null {
+  if (e.genderNote === "Boys") return "Male";
+  if (e.genderNote === "Girls") return "Female";
+  return null;
+}
+
+export function eventLabel(e: ConvergeEvent) {
+  const g = e.genderNote && e.genderNote !== "Open" && e.genderNote !== "Mixed" ? ` (${e.genderNote})` : "";
+  return `${e.name}${g}`;
+}

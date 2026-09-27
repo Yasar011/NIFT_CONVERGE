@@ -23,11 +23,31 @@ const FAQS: FaqItem[] = [
   {
     question: "How many events do I pick?",
     answer:
-      "Two Major events and one Minor event. This is NIFT Jodhpur's own selection requirement — it isn't part of the official CONVERGE rulebook.",
+      "2 Major and 1 Minor event are required, and you can add up to 2 extras — 5 at most. This is NIFT Jodhpur's own requirement, not part of the official CONVERGE rulebook.",
+  },
+  {
+    question: "Can I be selected for all five?",
+    answer:
+      "No. You can be selected for at most 3 events. As soon as your third selection is confirmed, your other events are locked.",
+  },
+  {
+    question: "How do I sign in?",
+    answer:
+      "With your @nift.ac.in Google account — the same one you use for NIFT email. Other Google accounts can't sign in.",
+  },
+  {
+    question: "What is the QR pass for?",
+    answer:
+      "After registering you get a personal QR code on My Converge. Club admins scan it at screenings and trials to mark you present, and to put you live when there's public voting.",
+  },
+  {
+    question: "How does public voting work?",
+    answer:
+      "For some events a club runs public voting. The performer on stage appears on the Vote page and any NIFT student can vote Good or Reject — once per performer. Only admins see the counts; published results show the ranking and Good votes only.",
   },
   {
     question: "Can I change my events after registering?",
-    answer: "Changes depend on the selection team's instructions and the registration timeline.",
+    answer: "Not yourself — once submitted, your events are fixed. Contact the main admin if you need a change; events you've already been selected for can't be removed.",
   },
   {
     question: "Where are the official rules?",

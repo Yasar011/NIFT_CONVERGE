@@ -1,31 +1,33 @@
 import Link from "next/link";
 import PageHeader from "@/components/PageHeader";
 import RegistrationForm from "@/components/RegistrationForm";
-import { REGISTRATION_OPEN } from "@/lib/registration-status";
+import { getSettings } from "@/lib/server/settings";
 
 export const metadata = { title: "Register | NIFT Jodhpur Converge 2026" };
 
 const CHECKLIST = [
-  "Your NIFT student ID",
-  "Two Major events and one Minor event in mind",
+  "Your @nift.ac.in Google account",
+  "Your NIFT student ID and a clear photo of your face",
+  "2 Major + 1 Minor events in mind — plus up to 2 extras",
   <>
     The rules for those events — see the{" "}
     <Link href="/events" className="font-semibold underline underline-offset-4">programme</Link>
   </>,
-  "A mobile number and email you check",
+  "A mobile number you answer",
 ];
 
-export default function RegisterPage() {
+export default async function RegisterPage() {
+  const { registrationOpen } = await getSettings();
   return (
     <>
       <PageHeader
-        kicker={REGISTRATION_OPEN ? "Registration open" : "Registration opening soon"}
+        kicker={registrationOpen ? "Registration open" : "Registration opening soon"}
         title={<>Register your<br />interest</>}
-        intro="Tell us who you are and pick your 2 Major + 1 Minor events to enter NIFT Jodhpur's selection for CONVERGE 2026."
+        intro="Sign in with your NIFT account, add your details, and pick 2 Major + 1 Minor events (plus up to 2 extras) to enter NIFT Jodhpur's selection."
         tone="bg-blue text-paper"
       />
 
-      {!REGISTRATION_OPEN && (
+      {!registrationOpen && (
         <div className="border-b-2 border-ink bg-marigold">
           <p className="mx-auto max-w-[1400px] px-4 py-4 text-sm font-semibold sm:px-8">
             Registration hasn&apos;t opened yet. You can look through the form below so you know
@@ -50,7 +52,7 @@ export default function RegisterPage() {
               <p className="label text-marigold">NIFT Jodhpur selection rule</p>
               <p className="mt-3 text-sm leading-relaxed text-paper/80">
                 Registering enters you into selection — it doesn&apos;t guarantee a place in the
-                final 50.{" "}
+                final 50. You can be selected for at most 3 events.{" "}
                 <Link href="/selection" className="font-semibold text-paper underline underline-offset-4">
                   How selection works
                 </Link>
@@ -60,7 +62,7 @@ export default function RegisterPage() {
         </aside>
 
         <div className="lg:col-span-8">
-          <RegistrationForm />
+          <RegistrationForm registrationOpen={registrationOpen} />
         </div>
       </div>
     </>

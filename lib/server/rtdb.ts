@@ -1,0 +1,104 @@
+// Minimal Realtime Database client over REST, authenticated as the service
+// account (bypasses security rules, which deny all browser access).
+// REST keeps serverless functions stateless — no long-lived websocket — and
+// ETag conditional writes give us safe read-modify-write transactions.
+import { adminApp } from "./firebase-admin";
+import { HttpError } from "./http";
+
+const BASE =
+  process.env.FIREBASE_DATABASE_URL ||
+  `https://${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}-default-rtdb.firebaseio.com`;
+
+let cached: { token: string; exp: number } | null = null;
+
+async function token() {
+  if (cached && cached.exp > Date.now() + 60_000) return cached.token;
+  const t = await adminApp().options.credential!.getAccessToken();
+  cached = { token: t.access_token, exp: Date.now() + t.expires_in * 1000 };
+  return cached.token;
+}
+
+type Query = { orderBy?: string; equalTo?: string | number | boolean; shallow?: boolean };
+
+function url(path: string, q?: Query) {
+  const clean = path.replace(/^\/+|\/+$/g, "");
+  const u = new URL(`${BASE}/${clean}.json`);
+  if (q?.orderBy) u.searchParams.set("orderBy", JSON.stringify(q.orderBy));
+  if (q?.equalTo !== undefined) u.searchParams.set("equalTo", JSON.stringify(q.equalTo));
+  if (q?.shallow) u.searchParams.set("shallow", "true");
+  return u.toString();
+}
+
+async function call(method: string, path: string, body?: unknown, headers: Record<string, string> = {}, q?: Query) {
+  const res = await fetch(url(path, q), {
+    method,
+    headers: { Authorization: `Bearer ${await token()}`, ...headers, ...(body !== undefined ? { "Content-Type": "application/json" } : {}) },
+    body: body === undefined ? undefined : JSON.stringify(body),
+    cache: "no-store",
+  });
+  return res;
+}
+
+async function json<T>(res: Response): Promise<T> {
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`RTDB ${res.status}: ${text.slice(0, 200)}`);
+  }
+  return (await res.json()) as T;
+}
+
+export const db = {
+  async get<T = unknown>(path: string, q?: Query): Promise<T | null> {
+    return json<T | null>(await call("GET", path, undefined, {}, q));
+  },
+  async set(path: string, value: unknown) {
+    await json(await call("PUT", path, value));
+  },
+  /** Multi-location atomic update: keys are paths relative to `path`. */
+  async update(path: string, values: Record<string, unknown>) {
+    await json(await call("PATCH", path, values));
+  },
+  async remove(path: string) {
+    await json(await call("DELETE", path));
+  },
+  /** Push with a server-generated, time-ordered key. */
+  async push(path: string, value: unknown): Promise<string> {
+    return (await json<{ name: string }>(await call("POST", path, value))).name;
+  },
+
+  /**
+   * Read-modify-write with optimistic concurrency. `fn` receives the current
+   * value and returns the new one. Return `undefined` to leave it untouched,
+   * or throw an HttpError to abort with an error.
+   */
+  async transaction<T>(path: string, fn: (current: T | null) => T | null | undefined, retries = 12): Promise<T | null> {
+    for (let i = 0; i < retries; i++) {
+      const res = await call("GET", path, undefined, { "X-Firebase-ETag": "true" });
+      const etag = res.headers.get("ETag");
+      const current = await json<T | null>(res);
+      const next = fn(current);
+      if (next === undefined) return current;
+      const put = await call("PUT", path, next, { "if-match": etag ?? "" });
+      if (put.ok) return next;
+      if (put.status !== 412) await json(put);
+      await new Promise((r) => setTimeout(r, 30 + Math.random() * 120 * (i + 1)));
+    }
+    throw new HttpError(503, "Too many people are updating this right now — try again.");
+  },
+
+  /** Writes only if nothing exists at `path`. Returns false if it already existed. */
+  async create(path: string, value: unknown): Promise<boolean> {
+    let existed = false;
+    await this.transaction(path, (cur) => {
+      if (cur !== null) {
+        existed = true;
+        return undefined;
+      }
+      return value;
+    });
+    return !existed;
+  },
+};
+
+/** RTDB keys can't contain . # $ [ ] / */
+export const keyOf = (s: string) => s.trim().toLowerCase().replace(/\./g, ",").replace(/[#$[\]/]/g, "_");

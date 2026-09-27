@@ -12,7 +12,8 @@ const SPLIT = [
     tag: "jodhpur" as const,
     title: "Set by NIFT Jodhpur",
     points: [
-      "Choosing 2 Major events + 1 Minor event to enter selection.",
+      "Registering for 2 Major + 1 Minor event, plus up to 2 extras.",
+      "Selecting a student for at most 3 events — the rest lock automatically.",
       "Screening, trials and auditions run by club coordinators.",
       "Who gets shortlisted for each event.",
     ],
@@ -40,18 +41,19 @@ export default function SelectionPage() {
 
       <section className="mx-auto grid max-w-[1400px] gap-10 px-4 py-16 sm:px-8 lg:grid-cols-12 lg:py-24">
         <div className="lg:col-span-5">
-          <p className="display text-[40vw] leading-[0.75] lg:text-[15rem]" aria-hidden>2+1</p>
+          <p className="display text-[40vw] leading-[0.75] lg:text-[15rem]" aria-hidden>5→3</p>
         </div>
         <div className="lg:col-span-7 lg:pt-6">
           <RuleTag type="jodhpur" />
-          <h2 className="display mt-5 text-5xl sm:text-6xl">Any two as Major. Any one as Minor.</h2>
+          <h2 className="display mt-5 text-5xl sm:text-6xl">Pick up to five. Get selected for up to three.</h2>
           <p className="mt-5 max-w-xl text-lg leading-relaxed text-ink-soft">
             When you register, choose any 2 events from the{" "}
             <Link href="/events" className="font-semibold text-ink underline underline-offset-4">
               full programme
             </Link>{" "}
-            as your Major events and any 1 as your Minor event. All three must be different.
-            Coordinators use these picks to plan screening and trials across events.
+            as your Major events and any 1 as your Minor event — those three are required. You can
+            add up to 2 extra events, so 5 at most, all different. You can be selected for at most
+            3 events: the first three selections confirmed are yours, and your remaining events lock.
           </p>
 
           <div className="mt-8 border-2 border-ink bg-ink p-6 text-paper">

@@ -3,6 +3,8 @@ import { Archivo, Instrument_Serif, Tiro_Devanagari_Hindi } from "next/font/goog
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import RegisterCta from "@/components/RegisterCta";
+import { AuthProvider } from "@/components/auth/AuthProvider";
 
 const archivo = Archivo({
   variable: "--font-archivo",
@@ -37,9 +39,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${archivo.variable} ${instrument.variable} ${tiro.variable} paper-grain`}>
-        <Navbar />
-        <main>{children}</main>
-        <Footer />
+        <AuthProvider>
+          <Navbar cta={<RegisterCta size="sm" />} mobileCta={<RegisterCta tone="paper" className="w-full" />} />
+          <main>{children}</main>
+          <Footer />
+        </AuthProvider>
       </body>
     </html>
   );

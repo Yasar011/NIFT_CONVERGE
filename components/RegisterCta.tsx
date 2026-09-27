@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import clsx from "clsx";
-import { REGISTRATION_OPEN } from "@/lib/registration-status";
+import { getSettings } from "@/lib/server/settings";
 
 interface RegisterCtaProps {
   className?: string;
@@ -9,8 +9,9 @@ interface RegisterCtaProps {
   size?: "sm" | "lg";
 }
 
-export default function RegisterCta({ className, tone = "blue", size = "lg" }: RegisterCtaProps) {
-  const label = REGISTRATION_OPEN ? "Register now" : "Registration opening soon";
+export default async function RegisterCta({ className, tone = "blue", size = "lg" }: RegisterCtaProps) {
+  const { registrationOpen } = await getSettings();
+  const label = registrationOpen ? "Register now" : "Registration opening soon";
 
   return (
     <Link
@@ -24,7 +25,7 @@ export default function RegisterCta({ className, tone = "blue", size = "lg" }: R
         className
       )}
     >
-      {!REGISTRATION_OPEN && (
+      {!registrationOpen && (
         <span className="relative flex h-2 w-2" aria-hidden>
           <span className="absolute inline-flex h-full w-full animate-ping bg-marigold opacity-75 motion-reduce:animate-none" />
           <span className="relative inline-flex h-2 w-2 bg-marigold" />

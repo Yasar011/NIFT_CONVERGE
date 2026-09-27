@@ -1,9 +1,9 @@
 import clsx from "clsx";
 
 const STEPS = [
-  { title: "Register", desc: "Submit your details and your 2 Major + 1 Minor event picks." },
+  { title: "Register", desc: "Sign in with your NIFT account and pick 2 Major + 1 Minor (+ up to 2 extras)." },
   { title: "Screening", desc: "Club coordinators review interest against event slots and eligibility." },
-  { title: "Trials", desc: "Shortlisted students may be called for trials, auditions or interviews." },
+  { title: "Trials", desc: "Trials, auditions or public voting — show your QR pass to be scanned in." },
   { title: "Shortlist", desc: "A provisional shortlist is released for each event." },
   { title: "Final 50", desc: "The Campus SDAC confirms the contingent of up to 50 students." },
   { title: "Converge", desc: "The contingent travels and competes as Team NIFT Jodhpur." },
