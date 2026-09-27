@@ -160,7 +160,7 @@ export function RegistrationFields({
                   htmlFor={slot}
                   className={clsx(
                     "label flex items-center justify-between border-b-2 px-3 py-2.5",
-                    slot === "minor" ? "border-ink bg-marigold" : required ? "border-ink bg-ink text-paper" : "border-ink/30 bg-paper-2"
+                    required ? "border-ink bg-ink text-paper" : "border-ink/30 bg-paper-2"
                   )}
                 >
                   <span>

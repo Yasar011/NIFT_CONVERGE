@@ -2,21 +2,14 @@
 // account (bypasses security rules, which deny all browser access).
 // REST keeps serverless functions stateless — no long-lived websocket — and
 // ETag conditional writes give us safe read-modify-write transactions.
-import { adminApp } from "./firebase-admin";
+import { accessToken } from "./google";
 import { HttpError } from "./http";
 
 const BASE =
   process.env.FIREBASE_DATABASE_URL ||
   `https://${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}-default-rtdb.firebaseio.com`;
 
-let cached: { token: string; exp: number } | null = null;
-
-async function token() {
-  if (cached && cached.exp > Date.now() + 60_000) return cached.token;
-  const t = await adminApp().options.credential!.getAccessToken();
-  cached = { token: t.access_token, exp: Date.now() + t.expires_in * 1000 };
-  return cached.token;
-}
+const token = accessToken;
 
 type Query = { orderBy?: string; equalTo?: string | number | boolean; shallow?: boolean };
 

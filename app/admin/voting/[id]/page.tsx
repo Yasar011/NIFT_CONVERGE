@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, QrCode } from "lucide-react";
+import { ChevronLeft, Copy, ExternalLink, QrCode } from "lucide-react";
+import QrImage from "@/components/QrImage";
 import clsx from "clsx";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Btn, ErrorNote, Loading, PageTitle, SESSION_TONE, inputCls, useApi } from "@/components/admin/kit";
@@ -87,6 +88,8 @@ export default function VotingRoom({ params }: { params: Promise<{ id: string }>
         )}
       </div>
       {actionError && <ErrorNote>{actionError}</ErrorNote>}
+
+      {s.publicId && s.status !== "published" && <PublicLink publicId={s.publicId} />}
 
       {s.live && (
         <div className="flex items-center gap-4 border-2 border-ink bg-rani p-4 text-paper">
@@ -221,5 +224,38 @@ function AdjustForm({ sessionId, tallies, onDone }: { sessionId: string; tallies
       </div>
       {err && <p className="mt-2 text-sm font-semibold text-sindoor">{err}</p>}
     </form>
+  );
+}
+
+function PublicLink({ publicId }: { publicId: string }) {
+  const [copied, setCopied] = useState(false);
+  const url = typeof window === "undefined" ? `/v/${publicId}` : `${window.location.origin}/v/${publicId}`;
+  return (
+    <section className="grid gap-5 border-2 border-ink bg-paper p-5 sm:grid-cols-[auto_1fr] sm:items-center">
+      <div className="justify-self-center border-2 border-ink bg-white p-2">
+        <QrImage value={url} size={170} label="QR code for the public voting link" />
+      </div>
+      <div className="min-w-0">
+        <p className="label">Public voting link — no login needed</p>
+        <p className="mt-2 break-all font-mono text-sm">{url}</p>
+        <p className="mt-2 text-sm text-ink-soft">
+          Share it in groups or project the QR on screen. Each phone can vote once per performer, even after refreshing.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Btn
+            onClick={async () => {
+              await navigator.clipboard.writeText(url);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            }}
+          >
+            <Copy size={14} /> {copied ? "Copied" : "Copy link"}
+          </Btn>
+          <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 border-2 border-ink px-4 py-2.5 text-xs font-bold uppercase tracking-wide hover:bg-paper-2">
+            <ExternalLink size={14} /> Open
+          </a>
+        </div>
+      </div>
+    </section>
   );
 }

@@ -118,7 +118,7 @@ export default async function EventDetailPage({
             <div className="mt-6">
               <RegisterCta className="w-full" />
               <p className="mt-3 text-xs leading-relaxed text-ink-soft">
-                List this event as one of your Major or Minor picks when registration opens.
+                Add this as one of your 5 events when registration opens.
               </p>
             </div>
           </div>

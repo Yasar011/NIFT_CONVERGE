@@ -12,7 +12,7 @@ const SPLIT = [
     tag: "jodhpur" as const,
     title: "Set by NIFT Jodhpur",
     points: [
-      "Registering for 2 Major + 1 Minor event, plus up to 2 extras.",
+      "Registering for 3 to 5 events (Events 1–3 required, 4–5 optional).",
       "Selecting a student for at most 3 events — the rest lock automatically.",
       "Screening, trials and auditions run by club coordinators.",
       "Who gets shortlisted for each event.",
@@ -47,12 +47,12 @@ export default function SelectionPage() {
           <RuleTag type="jodhpur" />
           <h2 className="display mt-5 text-5xl sm:text-6xl">Pick up to five. Get selected for up to three.</h2>
           <p className="mt-5 max-w-xl text-lg leading-relaxed text-ink-soft">
-            When you register, choose any 2 events from the{" "}
+            When you register, choose Event 1, Event 2 and Event 3 from the{" "}
             <Link href="/events" className="font-semibold text-ink underline underline-offset-4">
               full programme
             </Link>{" "}
-            as your Major events and any 1 as your Minor event — those three are required. You can
-            add up to 2 extra events, so 5 at most, all different. You can be selected for at most
+            — those three are required — and optionally Event 4 and Event 5. That&apos;s 5 at most,
+            all different. You can be selected for at most
             3 events: the first three selections confirmed are yours, and your remaining events lock.
           </p>
 

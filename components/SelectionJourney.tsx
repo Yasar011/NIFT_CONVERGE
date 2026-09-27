@@ -1,7 +1,7 @@
 import clsx from "clsx";
 
 const STEPS = [
-  { title: "Register", desc: "Sign in with your NIFT account and pick 2 Major + 1 Minor (+ up to 2 extras)." },
+  { title: "Register", desc: "Sign in with your NIFT account and pick 3 to 5 events." },
   { title: "Screening", desc: "Club coordinators review interest against event slots and eligibility." },
   { title: "Trials", desc: "Trials, auditions or public voting — show your QR pass to be scanned in." },
   { title: "Shortlist", desc: "A provisional shortlist is released for each event." },

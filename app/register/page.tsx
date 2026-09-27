@@ -8,7 +8,7 @@ export const metadata = { title: "Register | NIFT Jodhpur Converge 2026" };
 const CHECKLIST = [
   "Your @nift.ac.in Google account",
   "Your NIFT student ID and a clear photo of your face",
-  "2 Major + 1 Minor events in mind — plus up to 2 extras",
+  "3 to 5 events in mind (Events 1–3 required, 4–5 optional)",
   <>
     The rules for those events — see the{" "}
     <Link href="/events" className="font-semibold underline underline-offset-4">programme</Link>
@@ -23,7 +23,7 @@ export default async function RegisterPage() {
       <PageHeader
         kicker={registrationOpen ? "Registration open" : "Registration opening soon"}
         title={<>Register your<br />interest</>}
-        intro="Sign in with your NIFT account, add your details, and pick 2 Major + 1 Minor events (plus up to 2 extras) to enter NIFT Jodhpur's selection."
+        intro="Sign in with your NIFT account, add your details, and pick 3 to 5 events to enter NIFT Jodhpur's selection."
         tone="bg-blue text-paper"
       />
 

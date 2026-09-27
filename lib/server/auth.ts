@@ -1,5 +1,4 @@
-import type { DecodedIdToken } from "firebase-admin/auth";
-import { adminAuth } from "./firebase-admin";
+import { verifyIdToken, type IdToken } from "./google";
 import { db, keyOf } from "./rtdb";
 import { HttpError } from "./http";
 import type { EventCategory } from "../types";
@@ -25,13 +24,13 @@ export function isAllowedEmail(email?: string | null) {
   return !!email && email.toLowerCase().endsWith(`@${DOMAIN}`);
 }
 
-async function verify(req: Request): Promise<DecodedIdToken> {
+async function verify(req: Request): Promise<IdToken> {
   const header = req.headers.get("authorization") || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : "";
   if (!token) throw new HttpError(401, "Please sign in.");
-  let decoded: DecodedIdToken;
+  let decoded: IdToken;
   try {
-    decoded = await adminAuth().verifyIdToken(token);
+    decoded = await verifyIdToken(token);
   } catch {
     throw new HttpError(401, "Your session has expired. Please sign in again.");
   }
@@ -49,12 +48,6 @@ export async function roleFor(email: string): Promise<{ role: Role; club: EventC
   if (d?.role === "main_admin") return { role: "main_admin", club: null };
   if (d?.role === "club_admin" && d.club) return { role: "club_admin", club: d.club };
   return { role: "student", club: null };
-}
-
-/** Verified NIFT account, without a role lookup (cheap — no database read). */
-export async function requireNiftUser(req: Request) {
-  const t = await verify(req);
-  return { uid: t.uid, email: t.email!.toLowerCase(), name: (t.name as string) || t.email!.split("@")[0] };
 }
 
 export async function requireUser(req: Request): Promise<SessionUser> {

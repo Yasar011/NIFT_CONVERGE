@@ -124,16 +124,16 @@ export default async function Home() {
               Pick up to five. Go for up to three.
             </h2>
             <p className="mt-5 max-w-xl text-lg leading-relaxed">
-              Every student picks <strong>2 Major</strong> and <strong>1 Minor</strong> event, plus up
-              to <strong>2 extras</strong>. You can be <strong>selected for at most 3</strong> — once
+              Every student registers for <strong>3 to 5 events</strong> — Event 1, 2 and 3 are
+              required, 4 and 5 are optional. You can be <strong>selected for at most 3</strong> — once
               you are, your other events lock. This is NIFT Jodhpur&apos;s own framework, not a rule in
               the official CONVERGE 2026 Rule Book.
             </p>
 
             <ol className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-5">
-              {["Major 01", "Major 02", "Minor", "Extra 01", "Extra 02"].map((slot, i) => (
+              {["Event 1", "Event 2", "Event 3", "Event 4", "Event 5"].map((slot, i) => (
                 <li key={slot} className={clsx("border-2 bg-paper", i < 3 ? "border-ink" : "border-dashed border-ink/60")}>
-                  <p className={clsx("label border-b-2 px-3 py-2", i < 2 ? "border-ink bg-ink text-paper" : i === 2 ? "border-ink bg-paper" : "border-ink/30 bg-paper-2")}>
+                  <p className={clsx("label border-b-2 px-3 py-2", i < 3 ? "border-ink bg-ink text-paper" : "border-ink/30 bg-paper-2")}>
                     {slot}
                   </p>
                   <p className="px-3 py-3 text-sm text-ink-soft">{i < 3 ? "Required" : "Optional"}</p>

@@ -43,6 +43,10 @@ export interface EntryRecord {
   createdAt: number;
   updatedAt?: number;
   updatedBy?: string;
+  note?: string;
+  addedBy?: string;
+  finalBy?: string;
+  finalAt?: number;
 }
 
 export interface EntryView extends EntryRecord {
@@ -72,6 +76,8 @@ export interface LiveParticipant {
 
 export interface VotingSession {
   id: string;
+  /** Random id for the public, no-login voting link: /v/{publicId} */
+  publicId?: string;
   eventKey: string;
   category: EventCategory;
   eventName: string;
@@ -116,10 +122,10 @@ export interface PublishedResult {
   rows: { rank: number; name: string; department: string; photoUrl: string; good: number }[];
 }
 
-export interface LiveSessionPublic {
-  id: string;
+export interface RunningRound {
+  publicId: string;
   title: string;
   eventName: string;
   category: EventCategory;
-  live: LiveParticipant;
+  liveName: string | null;
 }

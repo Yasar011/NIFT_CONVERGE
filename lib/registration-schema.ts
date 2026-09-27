@@ -7,18 +7,20 @@ export const SEMESTERS = ["1", "3", "5", "7"] as const;
 export const GENDERS = ["Male", "Female", "Prefer not to say"] as const;
 export const RESIDENCES = ["Hostel", "Day Scholar"] as const;
 
-export const PICK_SLOTS = ["major1", "major2", "minor", "extra1", "extra2"] as const;
+export const PICK_SLOTS = ["e1", "e2", "e3", "e4", "e5"] as const;
 export type PickSlot = (typeof PICK_SLOTS)[number];
-export const REQUIRED_SLOTS: PickSlot[] = ["major1", "major2", "minor"];
+/** Students must pick at least Events 1–3; Events 4–5 are optional. */
+export const REQUIRED_SLOTS: PickSlot[] = ["e1", "e2", "e3"];
 export const SLOT_LABEL: Record<PickSlot, string> = {
-  major1: "Major 01",
-  major2: "Major 02",
-  minor: "Minor",
-  extra1: "Extra 01",
-  extra2: "Extra 02",
+  e1: "Event 1",
+  e2: "Event 2",
+  e3: "Event 3",
+  e4: "Event 4",
+  e5: "Event 5",
 };
 
-export const MAX_EVENTS = 5;
+export const MIN_EVENTS = REQUIRED_SLOTS.length;
+export const MAX_EVENTS = PICK_SLOTS.length;
 export const MAX_SELECTIONS = 3;
 export const CAMPUS_CAP = 50;
 
@@ -51,7 +53,7 @@ export const EMPTY_REGISTRATION: RegistrationInput = {
   phone: "",
   residence: "",
   photo: null,
-  picks: { major1: "", major2: "", minor: "", extra1: "", extra2: "" },
+  picks: { e1: "", e2: "", e3: "", e4: "", e5: "" },
   rulesAcknowledged: false,
   selectionAcknowledged: false,
 };
@@ -62,7 +64,12 @@ export function normaliseStudentId(id: string) {
   return id.trim().toUpperCase().replace(/\s+/g, "");
 }
 
-export function validateRegistration(data: RegistrationInput): RegistrationErrors {
+/**
+ * `admin: true` relaxes the minimum to one event — admins may add or remove a
+ * student's events one at a time.
+ */
+export function validateRegistration(data: RegistrationInput, opts: { admin?: boolean } = {}): RegistrationErrors {
+  const required: PickSlot[] = opts.admin ? ["e1"] : REQUIRED_SLOTS;
   const errors: RegistrationErrors = {};
 
   if (!data.fullName?.trim()) errors.fullName = "Enter your full name.";
@@ -84,7 +91,7 @@ export function validateRegistration(data: RegistrationInput): RegistrationError
   for (const slot of PICK_SLOTS) {
     const key = picks[slot];
     if (!key) {
-      if (REQUIRED_SLOTS.includes(slot)) errors[slot] = `Pick your ${SLOT_LABEL[slot]} event.`;
+      if (required.includes(slot)) errors[slot] = `Pick an event for ${SLOT_LABEL[slot]}.`;
       continue;
     }
     const event = getEventByKey(key);
@@ -103,6 +110,7 @@ export function validateRegistration(data: RegistrationInput): RegistrationError
     }
   }
 
+  if (opts.admin) return errors;
   if (!data.rulesAcknowledged) errors.rulesAcknowledged = "Please confirm you've read the event rules.";
   if (!data.selectionAcknowledged) errors.selectionAcknowledged = "Please confirm you understand this.";
 
@@ -111,6 +119,11 @@ export function validateRegistration(data: RegistrationInput): RegistrationError
 
 export function pickedKeys(picks: Record<PickSlot, string>) {
   return PICK_SLOTS.map((slot) => ({ slot, key: picks[slot] })).filter((p) => p.key);
+}
+
+/** Rebuilds picks from an ordered list of event keys (Event 1, Event 2, …). */
+export function picksFrom(keys: string[]): Record<PickSlot, string> {
+  return Object.fromEntries(PICK_SLOTS.map((slot, i) => [slot, keys[i] ?? ""])) as Record<PickSlot, string>;
 }
 
 // ---- Selection statuses ----

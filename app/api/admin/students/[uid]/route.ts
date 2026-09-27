@@ -34,7 +34,7 @@ export const PATCH = handle(async (req: Request, ctx: Ctx) => {
   const { uid } = await ctx.params;
   const old = await load(uid);
   const input = await readJson<RegistrationInput>(req);
-  const errors = validateRegistration({ ...input, rulesAcknowledged: true, selectionAcknowledged: true });
+  const errors = validateRegistration(input, { admin: true });
   if (Object.keys(errors).length) throw new HttpError(422, "Please fix the highlighted fields.", errors);
 
   const studentId = normaliseStudentId(input.studentId);

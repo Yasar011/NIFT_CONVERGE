@@ -2,6 +2,7 @@ import { handle, ok, readJson, HttpError } from "@/lib/server/http";
 import { requireAdmin, assertClubAccess } from "@/lib/server/auth";
 import { db } from "@/lib/server/rtdb";
 import { getEventByKey, eventLabel } from "@/lib/events";
+import { newPublicId } from "@/lib/server/public-voting";
 import type { VotingSession } from "@/lib/api-types";
 import type { EventCategory } from "@/lib/types";
 
@@ -23,7 +24,9 @@ export const POST = handle(async (req: Request) => {
   assertClubAccess(admin, event.category);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(body.date || "")) throw new HttpError(400, "Choose a date.");
 
+  const publicId = newPublicId();
   const session: Omit<VotingSession, "id"> = {
+    publicId,
     eventKey: body.eventKey,
     category: event.category as EventCategory,
     eventName: eventLabel(event),
@@ -35,5 +38,6 @@ export const POST = handle(async (req: Request) => {
     createdAt: Date.now(),
   };
   const id = await db.push("voting/sessions", session);
-  return ok({ id });
+  await db.set(`voting/public/${publicId}`, id);
+  return ok({ id, publicId });
 });

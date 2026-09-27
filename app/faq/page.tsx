@@ -23,7 +23,7 @@ const FAQS: FaqItem[] = [
   {
     question: "How many events do I pick?",
     answer:
-      "2 Major and 1 Minor event are required, and you can add up to 2 extras — 5 at most. This is NIFT Jodhpur's own requirement, not part of the official CONVERGE rulebook.",
+      "Between 3 and 5: Event 1, 2 and 3 are required, Event 4 and 5 are optional. This is NIFT Jodhpur's own requirement, not part of the official CONVERGE rulebook.",
   },
   {
     question: "Can I be selected for all five?",

@@ -90,6 +90,7 @@ export const PATCH = handle(async (req: Request, ctx: Ctx) => {
         [`votes/${id}`]: null,
         [`participants/${id}`]: null,
         [`adjust/${id}`]: null,
+        ...(session.publicId ? { [`public/${session.publicId}`]: null } : {}),
       });
       break;
 

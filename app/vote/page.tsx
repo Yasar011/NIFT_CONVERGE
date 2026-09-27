@@ -12,8 +12,8 @@ export default function VotePage() {
         title={<>Live<br />voting</>}
         intro={
           <>
-            When a club runs public voting, the performer on stage appears here. Vote Good or Reject — once
-            per performer. Only admins see the counts.{" "}
+            When a club runs public voting, open its link — no sign-in needed. Vote Good or Reject, once
+            per performer. Only organisers see the counts.{" "}
             <Link href="/results" className="font-bold underline underline-offset-4">
               See published results
             </Link>
