@@ -318,6 +318,12 @@ async function cleanup() {
   updates["studentIds/e2e_test_0001"] = null;
   updates["studentIds/e2e_test_0002"] = null;
   await rtdb("PATCH", "", updates);
+  // Restore the registration switch through the API too, so page caches refresh.
+  if (snapshot && tokens.ma) {
+    await rtdb("PUT", `roles/${keyOf(USERS.ma.email)}`, { email: USERS.ma.email, role: "main_admin", club: null });
+    await call("ma", "PATCH", "/api/admin/settings", { registrationOpen: !!snapshot.settings?.app?.registrationOpen });
+    await rtdb("DELETE", `roles/${keyOf(USERS.ma.email)}`);
+  }
   for (const u of Object.values(USERS)) if (u.uid) await auth.deleteUser(u.uid).catch(() => {});
   const accounts = [env.CLOUDINARY_URL_PRIMARY, env.CLOUDINARY_URL_FALLBACK].map((u) => u.match(/^cloudinary:\/\/(\d+):([^@]+)@(.+)$/));
   for (const up of uploads) {
