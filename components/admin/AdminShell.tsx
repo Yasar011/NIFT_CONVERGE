@@ -6,6 +6,7 @@ import {
   Activity,
   BarChart3,
   CalendarDays,
+  CheckSquare,
   ClipboardCheck,
   LayoutDashboard,
   ListChecks,
@@ -26,6 +27,7 @@ import { CATEGORY_META } from "@/lib/types";
 
 const NAV = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard, main: false },
+  { href: "/admin/queue", label: "Approvals", icon: CheckSquare, main: true },
   { href: "/admin/participants", label: "Participants", icon: ListChecks, main: false },
   { href: "/admin/trials", label: "Trials", icon: CalendarDays, main: false },
   { href: "/admin/judging", label: "Judging", icon: ClipboardCheck, main: false },

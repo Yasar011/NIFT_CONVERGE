@@ -38,6 +38,9 @@ export const PATCH = handle(async (req: Request, ctx: Ctx) => {
     video?: MediaRef | null;
     note?: string;
     teamRole?: "main" | "sub" | null;
+    recommend?: boolean;
+    recommendNote?: string;
+    decline?: boolean;
     finalPassword?: string;
   }>(req);
   const now = Date.now();
@@ -57,10 +60,37 @@ export const PATCH = handle(async (req: Request, ctx: Ctx) => {
     }
     changed = await setEntryStatus(id, body.status);
     if (body.status === "selected") Object.assign(patch, { finalBy: admin.email, finalAt: now });
+    // A final decision closes any open recommendation.
+    if (body.status === "selected" || body.status === "not_selected") patch.recommendation = null;
     if (changed.length) {
       log.push([isFinal ? "final" : "status", `${label}: ${STATUS_LABEL[current ?? "registered"]} → ${STATUS_LABEL[body.status]}`]);
       if (changed.length > 1) log.push(["status", `${entry.student.name}: ${changed.length - 1} other event(s) auto-${body.status === "selected" ? "locked" : "unlocked"}`]);
     }
+  }
+  if (body.recommend !== undefined) {
+    await assertNotFrozen();
+    const status = (await readSel()).status?.[id] ?? "registered";
+    if (body.recommend) {
+      if (status === "selected" || status === "locked" || status === "not_selected") {
+        throw new HttpError(409, `Can't recommend — this entry is ${STATUS_LABEL[status].toLowerCase()}.`);
+      }
+      patch.recommendation = {
+        state: "pending",
+        by: admin.email,
+        at: now,
+        note: String(body.recommendNote ?? "").trim().slice(0, 300),
+      };
+      log.push(["recommend", `${label}: recommended for final selection`]);
+    } else {
+      patch.recommendation = null;
+      log.push(["recommend", `${label}: recommendation withdrawn`]);
+    }
+  }
+  if (body.decline) {
+    if (admin.role !== "main_admin") throw new HttpError(403, "Only the main admin can decline a recommendation.");
+    if (entry.recommendation?.state !== "pending") throw new HttpError(409, "There's no pending recommendation.");
+    patch.recommendation = { ...entry.recommendation, state: "declined", decidedBy: admin.email, decidedAt: now };
+    log.push(["recommend", `${label}: recommendation declined`]);
   }
   if (body.teamRole !== undefined) {
     if (body.teamRole !== null && body.teamRole !== "main" && body.teamRole !== "sub") throw new HttpError(400, "Invalid team role.");

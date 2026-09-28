@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Check, Download, Film, Loader2, Lock, Phone, Plus, Printer, Search, StickyNote, Trash2, UserPlus, X } from "lucide-react";
+import { Check, Download, Film, Loader2, Lock, Megaphone, Phone, Plus, Printer, Search, Star, StickyNote, Trash2, UserPlus, X } from "lucide-react";
 import clsx from "clsx";
 import { useAuth, ApiError } from "@/components/auth/AuthProvider";
 import { Btn, ErrorNote, Loading, PageTitle, inputCls, useApi, useDownload } from "@/components/admin/kit";
@@ -34,6 +34,7 @@ function ParticipantsInner() {
   const [statusFilter, setStatusFilter] = useState<EntryStatus | "all">("all");
   const [q, setQ] = useState("");
   const [adding, setAdding] = useState(false);
+  const [picked, setPicked] = useState<Set<string>>(new Set());
 
   const path = event
     ? `/api/admin/entries?event=${encodeURIComponent(event)}`
@@ -131,13 +132,49 @@ function ParticipantsInner() {
         <Loading />
       ) : (
         <>
-          <p className="label text-ink-soft">{rows.length} entries</p>
+          <div className="flex flex-wrap items-center gap-4">
+            <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-[#15120e]"
+                checked={rows.length > 0 && rows.every((r) => picked.has(r.id))}
+                onChange={(e) => setPicked(e.target.checked ? new Set(rows.map((r) => r.id)) : new Set())}
+              />
+              Select all shown
+            </label>
+            <p className="label text-ink-soft">{rows.length} entries</p>
+          </div>
           <ul className="border-t-2 border-ink">
             {rows.map((e) => (
-              <Row key={e.id} entry={e} onChanged={reload} showEvent={!event} isMain={isMain} />
+              <Row
+                key={e.id}
+                entry={e}
+                onChanged={reload}
+                showEvent={!event}
+                isMain={isMain}
+                picked={picked.has(e.id)}
+                onPick={() =>
+                  setPicked((p) => {
+                    const n = new Set(p);
+                    if (n.has(e.id)) n.delete(e.id);
+                    else n.add(e.id);
+                    return n;
+                  })
+                }
+              />
             ))}
           </ul>
           {!rows.length && <p className="py-10 text-center text-ink-soft">No participants match.</p>}
+          {picked.size > 0 && (
+            <BulkBar
+              ids={[...picked]}
+              onClear={() => setPicked(new Set())}
+              onDone={() => {
+                setPicked(new Set());
+                reload();
+              }}
+            />
+          )}
         </>
       )}
     </div>
@@ -244,7 +281,21 @@ function AddMember({ defaultEvent, events, onClose, onAdded }: { defaultEvent: s
   );
 }
 
-function Row({ entry, onChanged, showEvent, isMain }: { entry: EntryView; onChanged: () => void; showEvent: boolean; isMain: boolean }) {
+function Row({
+  entry,
+  onChanged,
+  showEvent,
+  isMain,
+  picked,
+  onPick,
+}: {
+  entry: EntryView;
+  onChanged: () => void;
+  showEvent: boolean;
+  isMain: boolean;
+  picked: boolean;
+  onPick: () => void;
+}) {
   const { api } = useAuth();
   const { ask, forget } = useFinalPassword();
   const [busy, setBusy] = useState<string | null>(null);
@@ -310,8 +361,9 @@ function Row({ entry, onChanged, showEvent, isMain }: { entry: EntryView; onChan
   const present = !!entry.attendance?.present;
   const lockedForClub = !isMain && entry.status === "selected";
   return (
-    <li className="border-b border-ink/15 py-4">
-      <div className="grid gap-4 md:grid-cols-[4rem_1fr_13rem_auto] md:items-center">
+    <li className={clsx("border-b border-ink/15 py-4", picked && "bg-marigold/10")}>
+      <div className="grid gap-4 md:grid-cols-[1.5rem_4rem_1fr_13rem_auto] md:items-center">
+        <input type="checkbox" className="h-5 w-5 accent-[#15120e]" checked={picked} onChange={onPick} aria-label={`Select ${s.name}`} />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={cldTransform(s.photoUrl, "c_fill,g_face,w_128,h_128,q_auto,f_auto")} alt="" className="hidden h-16 w-16 border-2 border-ink object-cover md:block" />
 
@@ -333,6 +385,14 @@ function Row({ entry, onChanged, showEvent, isMain }: { entry: EntryView; onChan
             </a>
             {entry.finalBy && entry.status === "selected" && (
               <p className="text-xs text-peacock">Final selection by {entry.finalBy}</p>
+            )}
+            {entry.recommendation?.state === "pending" && entry.status !== "selected" && (
+              <p className="mt-1 inline-flex items-center gap-1 bg-marigold/30 px-1.5 py-0.5 text-xs font-semibold">
+                <Star size={11} className="fill-current" /> Recommended — waiting for main admin
+              </p>
+            )}
+            {entry.recommendation?.state === "declined" && (
+              <p className="mt-1 text-xs font-semibold text-sindoor">Recommendation declined by {entry.recommendation.decidedBy}</p>
             )}
             {entry.note && !noteOpen && <p className="mt-1 text-sm italic text-ink-soft">“{entry.note}”</p>}
           </div>
@@ -377,6 +437,18 @@ function Row({ entry, onChanged, showEvent, isMain }: { entry: EntryView; onChan
               {progress !== null ? `${progress}%` : "Video"}
             </Btn>
           )}
+          {entry.status !== "selected" && entry.status !== "locked" && entry.status !== "not_selected" && (
+            <Btn
+              tone={entry.recommendation?.state === "pending" ? "ink" : "paper"}
+              busy={busy === "recommend"}
+              aria-pressed={entry.recommendation?.state === "pending"}
+              title="Recommend for final selection"
+              onClick={() => patch({ recommend: entry.recommendation?.state !== "pending" }, "recommend")}
+            >
+              <Star size={14} className={clsx(entry.recommendation?.state === "pending" && "fill-current")} />
+              {entry.recommendation?.state === "pending" ? "Recommended" : "Recommend"}
+            </Btn>
+          )}
           <button onClick={() => setNoteOpen((v) => !v)} aria-label="Note" title="Note" className="cursor-pointer border-2 border-ink p-2 hover:bg-paper-2">
             <StickyNote size={14} />
           </button>
@@ -391,7 +463,7 @@ function Row({ entry, onChanged, showEvent, isMain }: { entry: EntryView; onChan
 
       {noteOpen && (
         <form
-          className="mt-3 flex gap-2 md:ml-[5rem]"
+          className="mt-3 flex gap-2 md:ml-[7rem]"
           onSubmit={async (e) => {
             e.preventDefault();
             if (await patch({ note }, "note")) setNoteOpen(false);
@@ -401,7 +473,81 @@ function Row({ entry, onChanged, showEvent, isMain }: { entry: EntryView; onChan
           <Btn type="submit" tone="ink" busy={busy === "note"}>Save</Btn>
         </form>
       )}
-      {err && <p className="mt-2 text-sm font-semibold text-sindoor md:ml-[5rem]">{err}</p>}
+      {err && <p className="mt-2 text-sm font-semibold text-sindoor md:ml-[7rem]">{err}</p>}
     </li>
+  );
+}
+
+/** Sticky bar for acting on many ticked entries at once. */
+function BulkBar({ ids, onClear, onDone }: { ids: string[]; onClear: () => void; onDone: () => void }) {
+  const { api } = useAuth();
+  const [busy, setBusy] = useState<string | null>(null);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [notice, setNotice] = useState<{ title: string; body: string } | null>(null);
+
+  async function run(key: string, body: Record<string, unknown>, label: string) {
+    setBusy(key);
+    setMsg(null);
+    try {
+      const res = await api<{ results: { id: string; ok: boolean; error?: string }[]; sentTo?: number }>("/api/admin/entries/bulk", {
+        body: { ids, ...body },
+      });
+      const done = res.results.filter((r) => r.ok).length;
+      const failed = res.results.filter((r) => !r.ok);
+      const reasons = [...new Set(failed.map((f) => f.error))].slice(0, 3).join(" · ");
+      setMsg({
+        ok: failed.length === 0,
+        text:
+          body.action === "notice"
+            ? `Notice sent to ${res.sentTo} student${res.sentTo === 1 ? "" : "s"}.`
+            : `${label}: ${done} done${failed.length ? `, ${failed.length} skipped (${reasons})` : ""}.`,
+      });
+      setNotice(null);
+      onDone();
+    } catch (e) {
+      setMsg({ ok: false, text: e instanceof Error ? e.message : "Couldn't do that." });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <div className="sticky bottom-3 z-30 border-2 border-ink bg-ink p-3 text-paper shadow-[4px_4px_0_var(--marigold)]">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="mr-2 text-sm font-bold">{ids.length} selected</span>
+        <Btn busy={busy === "short"} onClick={() => run("short", { action: "status", status: "shortlisted" }, "Shortlisted")}>Shortlist</Btn>
+        <Btn busy={busy === "not"} onClick={() => confirm(`Mark ${ids.length} as not selected?`) && run("not", { action: "status", status: "not_selected" }, "Not selected")}>
+          Not selected
+        </Btn>
+        <Btn busy={busy === "reg"} onClick={() => run("reg", { action: "status", status: "registered" }, "Back to registered")}>Reset</Btn>
+        <Btn busy={busy === "present"} onClick={() => run("present", { action: "present", present: true }, "Marked present")}>
+          <Check size={14} strokeWidth={3} /> Present
+        </Btn>
+        <Btn busy={busy === "absent"} onClick={() => run("absent", { action: "present", present: false }, "Marked absent")}>Absent</Btn>
+        <Btn busy={busy === "rec"} onClick={() => run("rec", { action: "recommend", recommend: true }, "Recommended")}>
+          <Star size={14} /> Recommend
+        </Btn>
+        <Btn onClick={() => setNotice(notice ? null : { title: "", body: "" })}>
+          <Megaphone size={14} /> Send notice
+        </Btn>
+        <button onClick={onClear} className="ml-auto cursor-pointer p-2 text-paper/80 hover:text-paper" aria-label="Clear selection">
+          <X size={18} />
+        </button>
+      </div>
+      {notice && (
+        <form
+          className="mt-3 grid gap-2 md:grid-cols-[1fr_2fr_auto]"
+          onSubmit={(e) => {
+            e.preventDefault();
+            run("notice", { action: "notice", notice }, "Notice");
+          }}
+        >
+          <input required maxLength={100} className={clsx(inputCls, "text-ink")} placeholder="Title" value={notice.title} onChange={(e) => setNotice({ ...notice, title: e.target.value })} />
+          <input required maxLength={1000} className={clsx(inputCls, "text-ink")} placeholder="Message — shows on their My Converge" value={notice.body} onChange={(e) => setNotice({ ...notice, body: e.target.value })} />
+          <Btn type="submit" tone="blue" busy={busy === "notice"}>Send</Btn>
+        </form>
+      )}
+      {msg && <p className={clsx("mt-2 text-sm font-semibold", msg.ok ? "text-marigold" : "text-[#ff9a8a]")}>{msg.text}</p>}
+    </div>
   );
 }

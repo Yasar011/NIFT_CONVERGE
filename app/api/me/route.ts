@@ -22,7 +22,15 @@ export const GET = handle(async (req: Request) => {
   const myClubs = new Set(entries.map((e) => `club:${e.category}`));
   const announcements = Object.entries(allNotices ?? {})
     .map(([id, a]) => ({ ...a, id }))
-    .filter((a) => a.audience === "all" || myClubs.has(a.audience) || myEvents.has(a.audience))
+    .filter(
+      (a) =>
+        a.audience === "all" ||
+        myClubs.has(a.audience) ||
+        myEvents.has(a.audience) ||
+        (a.audience === "students" && !!a.uids?.includes(user.uid))
+    )
+    // Never send the list of other students' ids to the browser.
+    .map((a) => ({ ...a, uids: undefined }))
     .sort((a, b) => b.at - a.at)
     .slice(0, 20);
   const trials = Object.values(allTrials ?? {})

@@ -45,6 +45,7 @@ export interface EntryRecord {
   updatedBy?: string;
   note?: string;
   teamRole?: "main" | "sub" | null;
+  recommendation?: Recommendation | null;
   addedBy?: string;
   finalBy?: string;
   finalAt?: number;
@@ -133,10 +134,23 @@ export interface RunningRound {
   liveName: string | null;
 }
 
+export interface Recommendation {
+  /** pending = waiting for the main admin; declined = main admin said no */
+  state: "pending" | "declined";
+  by: string;
+  at: number;
+  note?: string;
+  decidedBy?: string;
+  decidedAt?: number;
+}
+
 export interface Announcement {
   id: string;
   title: string;
   body: string;
+  /** For audience "students": exactly who it's for. */
+  uids?: string[];
+  club?: string | null;
   /** "all", "club:<category>" or an event key like "sports:basketball" */
   audience: string;
   createdBy: string;

@@ -9,7 +9,8 @@ import { PICKABLE_EVENTS, eventKey, eventLabel, getEventByKey } from "@/lib/even
 import { CATEGORY_META, CATEGORY_ORDER, type EventCategory } from "@/lib/types";
 import type { Announcement } from "@/lib/api-types";
 
-function audienceLabel(a: string) {
+function audienceLabel(a: string, uids?: string[]) {
+  if (a === "students") return `${uids?.length ?? 0} selected student${uids?.length === 1 ? "" : "s"}`;
   if (a === "all") return "Everyone";
   if (a.startsWith("club:")) return `All of ${CATEGORY_META[a.slice(5) as EventCategory]?.label}`;
   const ev = getEventByKey(a);
@@ -97,7 +98,7 @@ export default function AnnouncementsPage() {
             <li key={a.id} className="flex items-start justify-between gap-4 border-b border-ink/15 py-4">
               <span className="min-w-0">
                 <span className="label text-ink-soft">
-                  {audienceLabel(a.audience)} · {new Date(a.at).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })} · {a.createdBy}
+                  {audienceLabel(a.audience, a.uids)} · {new Date(a.at).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })} · {a.createdBy}
                 </span>
                 <span className="mt-1 block text-lg font-bold">{a.title}</span>
                 <span className="mt-1 block whitespace-pre-line text-ink-soft">{a.body}</span>

@@ -9,11 +9,17 @@ import { CAMPUS_CAP } from "@/lib/registration-schema";
 
 export const GET = handle(async (req: Request) => {
   const admin = await requireAdmin(req);
-  const [sel, regs, settings] = await Promise.all([
+  const [sel, regs, settings, entries] = await Promise.all([
     readSel(),
     db.get<Record<string, true>>("registrations", { shallow: true }),
     readSettings(),
+    admin.role === "main_admin"
+      ? db.get<Record<string, { recommendation?: { state: string } | null }>>("entries")
+      : Promise.resolve(null),
   ]);
+  const pendingApprovals = Object.entries(entries ?? {}).filter(
+    ([id, e]) => e.recommendation?.state === "pending" && sel.status?.[id] !== "selected"
+  ).length;
 
   // Per-event registered / selected / present counts.
   const registered: Record<string, number> = {};
@@ -40,6 +46,7 @@ export const GET = handle(async (req: Request) => {
     campusCap: CAMPUS_CAP,
     registrationOpen: isRegistrationOpen(settings),
     settings,
+    pendingApprovals: admin.role === "main_admin" ? pendingApprovals : 0,
     events,
   });
 });

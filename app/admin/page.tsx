@@ -19,6 +19,7 @@ interface Overview {
   campusCap: number;
   registrationOpen: boolean;
   settings: AppSettings;
+  pendingApprovals: number;
   events: { key: string; category: EventCategory; registered: number; selected: number; capacity: number }[];
 }
 
@@ -58,6 +59,13 @@ function OverviewInner() {
         <p className="flex items-center gap-2 border-2 border-ink bg-ink px-4 py-3 text-sm font-semibold text-paper">
           <Lock size={16} /> Selections are frozen: no statuses, members or teams can change until the main admin unfreezes.
         </p>
+      )}
+
+      {data.pendingApprovals > 0 && (
+        <Link href="/admin/queue" className="btn-print flex items-center justify-between gap-3 border-2 border-ink bg-marigold px-4 py-3 font-bold">
+          <span>{data.pendingApprovals} recommendation{data.pendingApprovals === 1 ? "" : "s"} waiting for your approval</span>
+          <span className="text-sm uppercase">Review →</span>
+        </Link>
       )}
 
       <div className="grid gap-4 md:grid-cols-3">

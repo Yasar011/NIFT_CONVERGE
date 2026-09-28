@@ -209,6 +209,7 @@ const fmtDate = (d: string) =>
   new Date(`${d}T00:00`).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
 
 function audienceLabel(a: string) {
+  if (a === "students") return "For you";
   if (a === "all") return "Everyone";
   if (a.startsWith("club:")) return CATEGORY_META[a.slice(5) as keyof typeof CATEGORY_META]?.label ?? "Club";
   const ev = getEventByKey(a);
