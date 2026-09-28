@@ -6,6 +6,7 @@ import { entryId, readSel } from "@/lib/server/selection";
 import { getSession } from "@/lib/server/voting";
 import { cldTransform } from "@/lib/registration-schema";
 import type { EntryRecord, LiveParticipant } from "@/lib/api-types";
+import { audit } from "@/lib/server/audit";
 
 /**
  * Club admin scans a student's QR pass at the event: marks them present and,
@@ -60,6 +61,7 @@ export const POST = handle(async (req: Request) => {
     revalidateTag("live", { expire: 0 });
   }
 
+  await audit(admin.email, "scan", `Scanned ${entry.student.name} at ${body.eventKey}${live ? " — live for voting" : ""}`, entry.category);
   return ok({
     student: {
       name: entry.student.name,

@@ -44,6 +44,7 @@ export interface EntryRecord {
   updatedAt?: number;
   updatedBy?: string;
   note?: string;
+  teamRole?: "main" | "sub" | null;
   addedBy?: string;
   finalBy?: string;
   finalAt?: number;
@@ -60,6 +61,8 @@ export interface MeResponse {
   entries: EntryView[];
   selectedCount: number;
   registrationOpen: boolean;
+  announcements: Announcement[];
+  trials: Trial[];
 }
 
 export type SessionStatus = "scheduled" | "running" | "ended" | "published";
@@ -128,4 +131,41 @@ export interface RunningRound {
   eventName: string;
   category: EventCategory;
   liveName: string | null;
+}
+
+export interface Announcement {
+  id: string;
+  title: string;
+  body: string;
+  /** "all", "club:<category>" or an event key like "sports:basketball" */
+  audience: string;
+  createdBy: string;
+  at: number;
+}
+
+export interface Trial {
+  id: string;
+  eventKey: string;
+  category: EventCategory;
+  title: string;
+  date: string;
+  time: string;
+  venue: string;
+  notes?: string;
+  createdBy: string;
+  at: number;
+}
+
+export interface ScoreRow {
+  entryId: string;
+  uid: string;
+  name: string;
+  studentId: string;
+  department: string;
+  photoUrl: string;
+  status: EntryStatus;
+  mine: Record<string, number> | null;
+  judges: number;
+  average: number | null;
+  rank: number | null;
 }

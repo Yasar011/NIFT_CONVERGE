@@ -2,6 +2,7 @@ import { handle, ok, readJson, HttpError } from "@/lib/server/http";
 import { requireMainAdmin } from "@/lib/server/auth";
 import { db } from "@/lib/server/rtdb";
 import { getSession } from "@/lib/server/voting";
+import { audit } from "@/lib/server/audit";
 
 /** Main admin adds (or removes) votes for a participant. Every change is logged. */
 export const POST = handle(async (req: Request, ctx: { params: Promise<{ id: string }> }) => {
@@ -17,7 +18,7 @@ export const POST = handle(async (req: Request, ctx: { params: Promise<{ id: str
   if (!good && !reject) throw new HttpError(400, "Enter how many votes to add or remove.");
   if (Math.abs(good) > 1000 || Math.abs(reject) > 1000) throw new HttpError(400, "That's too many votes.");
   if (!(body.reason || "").trim()) throw new HttpError(400, "Give a reason — it's kept in the log.");
-  const participant = await db.get(`voting/participants/${id}/${body.uid}`);
+  const participant = await db.get<{ name: string }>(`voting/participants/${id}/${body.uid}`);
   if (!participant) throw new HttpError(404, "That student isn't in this session.");
 
   await db.push(`voting/adjust/${id}`, {
@@ -28,5 +29,6 @@ export const POST = handle(async (req: Request, ctx: { params: Promise<{ id: str
     by: admin.email,
     at: Date.now(),
   });
+  await audit(admin.email, "vote.adjust", `"${session.title}": ${participant.name} Good ${good >= 0 ? "+" : ""}${good}, Reject ${reject >= 0 ? "+" : ""}${reject} — ${body.reason.trim()}`, session.category);
   return ok({ ok: true });
 });

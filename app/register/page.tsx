@@ -2,6 +2,7 @@ import Link from "next/link";
 import PageHeader from "@/components/PageHeader";
 import RegistrationForm from "@/components/RegistrationForm";
 import { getSettings } from "@/lib/server/settings";
+import { isRegistrationOpen } from "@/lib/settings-shared";
 
 export const metadata = { title: "Register | NIFT Jodhpur Converge 2026" };
 
@@ -17,7 +18,7 @@ const CHECKLIST = [
 ];
 
 export default async function RegisterPage() {
-  const { registrationOpen } = await getSettings();
+  const registrationOpen = isRegistrationOpen(await getSettings());
   return (
     <>
       <PageHeader

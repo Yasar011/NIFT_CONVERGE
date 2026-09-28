@@ -4,6 +4,7 @@ import { requireAdmin, assertClubAccess } from "@/lib/server/auth";
 import { db } from "@/lib/server/rtdb";
 import { getSession, tallies } from "@/lib/server/voting";
 import type { PublishedResult } from "@/lib/api-types";
+import { audit } from "@/lib/server/audit";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -98,5 +99,6 @@ export const PATCH = handle(async (req: Request, ctx: Ctx) => {
       throw new HttpError(400, "Unknown action.");
   }
   revalidateTag("live", { expire: 0 });
+  await audit(admin.email, `round.${action}`, `Voting round "${session.title}": ${action}`, session.category);
   return ok({ ok: true });
 });

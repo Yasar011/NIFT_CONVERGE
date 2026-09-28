@@ -3,6 +3,7 @@ import { requireAdmin, assertClubAccess } from "@/lib/server/auth";
 import { db } from "@/lib/server/rtdb";
 import { getEventByKey, eventLabel } from "@/lib/events";
 import { newPublicId } from "@/lib/server/public-voting";
+import { audit } from "@/lib/server/audit";
 import type { VotingSession } from "@/lib/api-types";
 import type { EventCategory } from "@/lib/types";
 
@@ -39,5 +40,6 @@ export const POST = handle(async (req: Request) => {
   };
   const id = await db.push("voting/sessions", session);
   await db.set(`voting/public/${publicId}`, id);
+  await audit(admin.email, "round.create", `Created voting round "${session.title}" for ${session.date}`, session.category);
   return ok({ id, publicId });
 });

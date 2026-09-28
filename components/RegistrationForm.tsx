@@ -210,13 +210,17 @@ export function RegistrationFields({
 }
 
 export default function RegistrationForm({ registrationOpen }: { registrationOpen: boolean }) {
-  const { status, me, user } = useAuth();
+  const { status, me, user, error } = useAuth();
   const router = useRouter();
 
   const alreadyRegistered = !!me?.registration;
   useEffect(() => {
     if (alreadyRegistered) router.replace("/me");
   }, [alreadyRegistered, router]);
+
+  if (status === "signed-in" && !me && error) {
+    return <p className="border-2 border-sindoor p-5 font-semibold text-sindoor">{error}</p>;
+  }
 
   if (status === "loading" || (status === "signed-in" && !me)) {
     return (

@@ -2,7 +2,8 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Check, Download, Film, Loader2, Lock, Phone, Plus, Search, StickyNote, Trash2, UserPlus, X } from "lucide-react";
+import Link from "next/link";
+import { Check, Download, Film, Loader2, Lock, Phone, Plus, Printer, Search, StickyNote, Trash2, UserPlus, X } from "lucide-react";
 import clsx from "clsx";
 import { useAuth, ApiError } from "@/components/auth/AuthProvider";
 import { Btn, ErrorNote, Loading, PageTitle, inputCls, useApi, useDownload } from "@/components/admin/kit";
@@ -67,6 +68,12 @@ function ParticipantsInner() {
         <Btn onClick={() => download(`/api/admin/export${isMain && category ? `?category=${category}` : ""}`, `converge26-${category || "all"}.csv`)}>
           <Download size={14} /> Export CSV
         </Btn>
+        <Link
+          href={`/admin/print?type=attendance${event ? `&event=${encodeURIComponent(event)}` : ""}`}
+          className="inline-flex items-center gap-2 border-2 border-ink px-4 py-2.5 text-xs font-bold uppercase tracking-wide hover:bg-paper-2"
+        >
+          <Printer size={14} /> Print sheet
+        </Link>
       </PageTitle>
 
       {adding && (

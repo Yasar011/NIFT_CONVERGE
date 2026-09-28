@@ -1,7 +1,8 @@
 import { handle, ok, readJson, HttpError } from "@/lib/server/http";
 import { requireMainAdmin, isAllowedEmail, type Role } from "@/lib/server/auth";
-import { db, keyOf } from "@/lib/server/rtdb";
+import { db, keyOf, forget } from "@/lib/server/rtdb";
 import { CATEGORY_ORDER, type EventCategory } from "@/lib/types";
+import { audit } from "@/lib/server/audit";
 
 interface RoleRecord {
   email: string;
@@ -35,6 +36,8 @@ export const POST = handle(async (req: Request) => {
     addedAt: Date.now(),
   };
   await db.set(`roles/${keyOf(email)}`, record);
+  forget(`role:${email}`);
+  await audit(me.email, "admin.add", `Added ${email} as ${body.role === "main_admin" ? "main admin" : `club admin (${record.club})`}`);
   return ok({ ok: true });
 });
 
@@ -44,5 +47,7 @@ export const DELETE = handle(async (req: Request) => {
   if (!email) throw new HttpError(400, "Missing email.");
   if (email === me.email) throw new HttpError(400, "You can't remove yourself.");
   await db.remove(`roles/${keyOf(email)}`);
+  forget(`role:${email}`);
+  await audit(me.email, "admin.remove", `Removed admin access for ${email}`);
   return ok({ ok: true });
 });

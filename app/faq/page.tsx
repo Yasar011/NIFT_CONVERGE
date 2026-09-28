@@ -43,7 +43,7 @@ const FAQS: FaqItem[] = [
   {
     question: "How does public voting work?",
     answer:
-      "For some events a club runs public voting. The performer on stage appears on the Vote page and any NIFT student can vote Good or Reject — once per performer. Only admins see the counts; published results show the ranking and Good votes only.",
+      "For some events a club runs public voting. Open the voting link or scan the QR, sign in with your NIFT account, and vote Good or Reject for the performer on stage — once per performer. Only admins see the counts; published results show the ranking and Good votes only.",
   },
   {
     question: "Can I change my events after registering?",

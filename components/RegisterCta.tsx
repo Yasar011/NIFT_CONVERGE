@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import clsx from "clsx";
 import { getSettings } from "@/lib/server/settings";
+import { isRegistrationOpen } from "@/lib/settings-shared";
 
 interface RegisterCtaProps {
   className?: string;
@@ -10,7 +11,7 @@ interface RegisterCtaProps {
 }
 
 export default async function RegisterCta({ className, tone = "blue", size = "lg" }: RegisterCtaProps) {
-  const { registrationOpen } = await getSettings();
+  const registrationOpen = isRegistrationOpen(await getSettings());
   const label = registrationOpen ? "Register now" : "Registration opening soon";
 
   return (

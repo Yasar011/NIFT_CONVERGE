@@ -3,6 +3,8 @@ import { requireUser } from "@/lib/server/auth";
 import { db, keyOf } from "@/lib/server/rtdb";
 import { assertOwnMedia } from "@/lib/server/cloudinary";
 import { readSettings } from "@/lib/server/settings";
+import { isRegistrationOpen } from "@/lib/settings-shared";
+import { audit } from "@/lib/server/audit";
 import { entriesFor } from "@/lib/server/entries";
 import { addEntries } from "@/lib/server/selection";
 import {
@@ -16,7 +18,7 @@ import type { RegistrationRecord } from "@/lib/api-types";
 export const POST = handle(async (req: Request) => {
   const user = await requireUser(req);
   const settings = await readSettings();
-  if (!settings.registrationOpen) throw new HttpError(403, "Registration is not open right now.");
+  if (!isRegistrationOpen(settings)) throw new HttpError(403, "Registration is not open right now.");
 
   const input = await readJson<RegistrationInput>(req);
   const errors = validateRegistration(input);
@@ -59,5 +61,6 @@ export const POST = handle(async (req: Request) => {
   const entries = entriesFor(record);
   await db.update("entries", entries);
   await addEntries(user.uid, Object.keys(entries));
+  await audit(user.email, "register", `${record.fullName} (${studentId}) registered for ${Object.keys(entries).length} events`);
   return ok({ ok: true });
 });

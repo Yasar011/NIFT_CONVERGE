@@ -73,6 +73,21 @@ function Editor({ uid, data, saved, onSaved }: { uid: string; data: Detail; save
     }
   }
 
+  async function block() {
+    const reason = prompt(`Block ${data.registration.email}? They won't be able to register or vote.\n\nReason (shown to them, optional):`);
+    if (reason === null) return;
+    setBusy("block");
+    setMsg(null);
+    try {
+      await api("/api/admin/blocked", { body: { email: data.registration.email, reason } });
+      setMsg({ ok: true, text: "Account blocked. Manage it under Blocked." });
+    } catch (e) {
+      setMsg({ ok: false, text: e instanceof Error ? e.message : "Couldn't block." });
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function remove() {
     if (!confirm("Delete this registration and all its event entries? This can't be undone.")) return;
     setBusy("delete");
@@ -91,6 +106,7 @@ function Editor({ uid, data, saved, onSaved }: { uid: string; data: Detail; save
         <ChevronLeft size={14} /> All students
       </Link>
       <PageTitle kicker={`${data.registration.email} · ${data.selectedCount}/3 selected`} title={data.registration.fullName}>
+        <Btn busy={busy === "block"} onClick={block}>Block account</Btn>
         <Btn tone="sindoor" busy={busy === "delete"} onClick={remove}>Delete</Btn>
       </PageTitle>
 

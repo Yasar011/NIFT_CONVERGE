@@ -34,7 +34,7 @@ export default function Navbar({ cta, mobileCta }: { cta: React.ReactNode; mobil
   const isAdmin = me?.user.role && me.user.role !== "student";
 
   return (
-    <header className="sticky top-0 z-50 border-b-2 border-ink bg-paper">
+    <header className="sticky top-0 z-50 border-b-2 border-ink bg-paper print:hidden">
       <nav className="mx-auto flex max-w-[1400px] items-stretch justify-between px-4 sm:px-8">
         <Link href="/" className="flex items-center gap-3 py-3" onClick={() => setOpen(false)}>
           <span className="display text-[2rem] leading-none">

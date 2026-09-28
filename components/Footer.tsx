@@ -3,7 +3,7 @@ import { CATEGORY_META, CATEGORY_ORDER } from "@/lib/types";
 
 export default function Footer() {
   return (
-    <footer className="bg-ink text-paper">
+    <footer className="bg-ink text-paper print:hidden">
       <div className="border-zigzag bg-paper" />
       <div className="mx-auto max-w-[1400px] px-4 pb-10 pt-16 sm:px-8">
         <div className="grid gap-12 lg:grid-cols-12">

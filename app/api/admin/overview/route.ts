@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/server/auth";
 import { db } from "@/lib/server/rtdb";
 import { readSel, parseEntryId, statId } from "@/lib/server/selection";
 import { readSettings } from "@/lib/server/settings";
+import { isRegistrationOpen } from "@/lib/settings-shared";
 import { PICKABLE_EVENTS, eventKey, capacityOf } from "@/lib/events";
 import { CAMPUS_CAP } from "@/lib/registration-schema";
 
@@ -37,7 +38,8 @@ export const GET = handle(async (req: Request) => {
     registrations: Object.keys(regs ?? {}).length,
     selectedStudents: sel.campus ?? 0,
     campusCap: CAMPUS_CAP,
-    registrationOpen: settings.registrationOpen,
+    registrationOpen: isRegistrationOpen(settings),
+    settings,
     events,
   });
 });

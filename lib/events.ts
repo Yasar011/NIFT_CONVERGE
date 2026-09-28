@@ -1155,3 +1155,39 @@ export function eventLabel(e: ConvergeEvent) {
   const g = e.genderNote && e.genderNote !== "Open" && e.genderNote !== "Mixed" ? ` (${e.genderNote})` : "";
   return `${e.name}${g}`;
 }
+
+// ---- Team composition (from the rulebook's participant lines) ----
+
+export interface Mix {
+  boys: number;
+  girls: number;
+  total: number;
+}
+
+function parseMix(text?: string, fallbackTotal = 0): Mix {
+  const boys = Number(text?.match(/(\d+)\s*Boys?/i)?.[1] ?? 0);
+  const girls = Number(text?.match(/(\d+)\s*Girls?/i)?.[1] ?? 0);
+  const plain = Number(text?.match(/^\s*(\d+)\s*$/)?.[1] ?? 0);
+  const total = boys + girls || plain || fallbackTotal;
+  return { boys, girls, total };
+}
+
+/** Main team and substitute requirements for team events, or null for solo events. */
+export function teamComposition(e: ConvergeEvent): { main: Mix; subs: Mix } | null {
+  const total = e.participantsCount ?? 1;
+  if (total <= 1 && !e.substitutes) return null;
+  return {
+    main: parseMix(e.participantsLabel, total),
+    subs: parseMix(e.substitutes, 0),
+  };
+}
+
+/** What judges score on. Uses the rulebook's evaluation criteria when it has them. */
+export function criteriaFor(e: ConvergeEvent): string[] {
+  if (e.evaluationCriteria?.length) return e.evaluationCriteria;
+  if (e.category === "sports") return ["Skill & technique", "Fitness", "Game sense"];
+  return ["Overall performance"];
+}
+
+/** Database-safe key for a judging criterion (RTDB keys can't contain . # $ / [ ]). */
+export const criterionKey = (c: string) => c.replace(/[.#$/[\]]/g, "_");

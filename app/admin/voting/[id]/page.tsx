@@ -236,10 +236,10 @@ function PublicLink({ publicId }: { publicId: string }) {
         <QrImage value={url} size={170} label="QR code for the public voting link" />
       </div>
       <div className="min-w-0">
-        <p className="label">Public voting link — no login needed</p>
+        <p className="label">Voting link — voters sign in with their NIFT account</p>
         <p className="mt-2 break-all font-mono text-sm">{url}</p>
         <p className="mt-2 text-sm text-ink-soft">
-          Share it in groups or project the QR on screen. Each phone can vote once per performer, even after refreshing.
+          Share it in groups or project the QR on screen. Each NIFT account gets one vote per performer.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <Btn

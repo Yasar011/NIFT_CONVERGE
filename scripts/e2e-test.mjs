@@ -1,6 +1,10 @@
 // End-to-end API test. Creates throwaway test accounts + data, exercises every
 // rule, then restores the database exactly as it was and deletes test uploads.
 //
+// ⚠ It snapshots and restores whole database sections, so anything real that
+// changes *during* the run (2–3 min) would be lost. Only run it when nobody is
+// using the site, and confirm with E2E_ALLOW_SHARED_DB=1.
+//
 //   E2E_FINAL_PASSWORD="…" node scripts/e2e-test.mjs              (localhost:3000)
 //   BASE_URL=https://… E2E_FINAL_PASSWORD="…" node scripts/e2e-test.mjs
 import { initializeApp, cert } from "firebase-admin/app";
@@ -43,7 +47,7 @@ const USERS = {
 };
 const tokens = {};
 const uploads = [];
-const SNAPSHOT_PATHS = ["sel", "voting", "results", "settings", "entries"];
+const SNAPSHOT_PATHS = ["sel", "voting", "results", "settings", "entries", "trials", "announcements", "scores", "audit", "blocked"];
 let snapshot = null;
 
 async function idToken(uid) {
@@ -94,6 +98,9 @@ const reg = (photo, studentId, gender, picks) => ({
 const eid = (uid, key) => `${uid}_${key.replace(":", "__")}`;
 
 async function main() {
+  if (process.env.E2E_ALLOW_SHARED_DB !== "1") {
+    throw new Error("This test writes to the live database. Re-run with E2E_ALLOW_SHARED_DB=1 when nobody is using the site.");
+  }
   if (!FINAL) throw new Error("Set E2E_FINAL_PASSWORD to the final-selection password.");
   snapshot = Object.fromEntries(await Promise.all(SNAPSHOT_PATHS.map(async (p) => [p, await rtdb("GET", p)])));
 
@@ -220,49 +227,41 @@ async function main() {
   r = await call("s1", "GET", "/api/me");
   check("attendance saved", r.data.entries.find((e) => e.eventKey === "esse:monologue")?.attendance?.present === true);
 
-  console.log("Public voting (no login, one vote per device)");
+  console.log("Voting (signed-in NIFT accounts, one vote per account)");
   r = await call("ca", "POST", "/api/admin/voting", { eventKey: "sports:100m-boys", date: "2026-10-01" });
   check("club admin can't create another club's round → 403", r.status === 403, r);
   r = await call("ca", "POST", "/api/admin/voting", { eventKey: "cultural:solo-dance", date: "2026-10-01", title: "E2E Solo Dance round" });
-  check("club admin creates round with public link", r.status === 200 && r.data.id && r.data.publicId, r);
+  check("club admin creates round with shareable link", r.status === 200 && r.data.id && r.data.publicId, r);
   const sid = r.data.id, pub = r.data.publicId;
-  const pv = async (device, method, body, qs = "") => {
-    const res = await fetch(`${BASE}/api/public/vote/${pub}${qs}`, {
-      method,
-      headers: { ...(device ? { "x-voter-id": device } : {}), ...(body ? { "Content-Type": "application/json" } : {}) },
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    return { status: res.status, data: await res.json(), cookie: res.headers.get("set-cookie") };
-  };
-  const dev = async () => (await (await fetch(`${BASE}/api/public/device`, { method: "POST" })).json()).id;
-  const devA = await dev(), devB = await dev();
-  check("devices get distinct voter ids", /^[a-f0-9]{32}$/.test(devA) && devA !== devB, [devA, devB]);
-  r = await pv(null, "GET");
-  check("public link works without login", r.status === 200 && r.data.round.status === "scheduled" && !r.data.round.live, r.data);
-  r = { status: (await fetch(`${BASE}/api/public/vote/nope-not-real`)).status };
+  const vote = (who, participant, value) => call(who, "POST", `/api/public/vote/${pub}`, { participant, value });
+  r = await call(null, "GET", `/api/public/vote/${pub}`);
+  check("link shows round state without login", r.status === 200 && r.data.round.status === "scheduled", r.data);
+  r = await call(null, "GET", "/api/public/vote/nope-not-real");
   check("unknown link → 404", r.status === 404, r);
   r = await call("ca", "POST", "/api/admin/scan", { code: `CNV26:${s1.uid}`, eventKey: "cultural:solo-dance", sessionId: sid });
   check("scan student 1 → present + live", r.status === 200 && r.data.live === true, r);
-  r = await pv(devA, "GET");
-  check("public page shows student 1 live, no counts", r.data.round?.live?.uid === s1.uid && !JSON.stringify(r.data).includes('"good"'), r.data);
-  r = await pv(devA, "POST", { participant: s1.uid, value: "good" });
-  check("device A votes Good (cookie set)", r.status === 200 && (r.cookie || "").includes("cnv_vid"), r);
-  r = await pv(devA, "POST", { participant: s1.uid, value: "reject" });
-  check("device A votes again → 409 (refresh/reopen can't re-vote)", r.status === 409, r);
-  r = await pv(devA, "GET", undefined, `?participant=${s1.uid}`);
-  check("device A's vote is remembered", r.data.voted === "good", r.data);
-  r = await pv(devB, "POST", { participant: s1.uid, value: "reject" });
-  check("device B votes Reject", r.status === 200, r);
-  r = await pv(null, "POST", { participant: s1.uid, value: "good" });
-  check("vote with no device id → 400", r.status === 400, r);
+  r = await call(null, "GET", `/api/public/vote/${pub}`);
+  check("link shows student 1 live, no counts", r.data.round?.live?.uid === s1.uid && !JSON.stringify(r.data).includes('"good"'), r.data);
+  r = await vote(null, s1.uid, "good");
+  check("voting without sign-in → 401", r.status === 401, r);
+  r = await vote("s2", s1.uid, "good");
+  check("student 2 votes Good", r.status === 200, r);
+  r = await vote("s2", s1.uid, "reject");
+  check("same account votes again → 409", r.status === 409, r);
+  r = await call("s2", "GET", `/api/public/vote/${pub}?participant=${s1.uid}`);
+  check("account's vote is remembered", r.data.voted === "good", r.data);
+  r = await vote("s1", s1.uid, "good");
+  check("self-vote → 403", r.status === 403, r);
+  r = await vote("ma", s1.uid, "reject");
+  check("another account votes Reject", r.status === 200, r);
   r = await fetch(`${BASE}/api/live`).then((x) => x.json());
   check("Vote page lists the live round", r.rounds?.some((x) => x.publicId === pub && x.liveName === s1.name), r);
   r = await call("ca", "POST", "/api/admin/scan", { code: `CNV26:${s2.uid}`, eventKey: "cultural:solo-dance", sessionId: sid });
   check("scan student 2 → becomes live", r.status === 200 && r.data.live, r);
-  r = await pv(devB, "POST", { participant: s1.uid, value: "good" });
+  r = await vote("ma", s1.uid, "good");
   check("voting for previous performer → 409", r.status === 409, r);
-  r = await pv(devA, "POST", { participant: s2.uid, value: "good" });
-  check("device A votes for student 2", r.status === 200, r);
+  r = await vote("s1", s2.uid, "good");
+  check("student 1 votes for student 2", r.status === 200, r);
   r = await call("s1", "GET", `/api/admin/voting/${sid}`);
   check("student can't see counts → 403", r.status === 403, r);
   r = await call("ca", "GET", `/api/admin/voting/${sid}`);
@@ -278,16 +277,91 @@ async function main() {
   check("can't publish before ending → 409", r.status === 409, r);
   r = await call("ca", "PATCH", `/api/admin/voting/${sid}`, { action: "end" });
   check("end round", r.status === 200, r);
-  r = await pv(devB, "POST", { participant: s2.uid, value: "good" });
+  r = await vote("ma", s2.uid, "good");
   check("vote after end → 409", r.status === 409, r);
-  r = await pv(null, "GET");
-  check("public page shows closed", r.data.round?.status === "ended", r.data);
   r = await call("ca", "PATCH", `/api/admin/voting/${sid}`, { action: "publish" });
   check("publish results", r.status === 200, r);
   const pubRes = await rtdb("GET", `results/${sid}`);
   check("published: ranked by Good incl. adjustment, no rejects", pubRes?.rows?.[0]?.name === s2.name && pubRes.rows[0].good === 3 && pubRes.rows[1].good === 1 && !JSON.stringify(pubRes).includes("reject"), pubRes?.rows);
   const html = await (await fetch(`${BASE}/results`)).text();
   check("results page shows the round", html.includes("E2E Solo Dance round"));
+
+  console.log("Trials, announcements, judging, teams");
+  r = await call("ca", "POST", "/api/admin/trials", { eventKey: "cultural:solo-dance", title: "E2E audition", date: "2026-10-05", time: "16:30", venue: "Auditorium" });
+  check("club admin schedules a trial", r.status === 200 && r.data.id, r);
+  const trialId = r.data.id;
+  r = await call("ca", "POST", "/api/admin/trials", { eventKey: "sports:basketball", date: "2026-10-05", time: "16:30", venue: "Court" });
+  check("club admin can't schedule another club's trial → 403", r.status === 403, r);
+  r = await call("ca", "POST", "/api/admin/announcements", { title: "E2E notice", body: "Bring your music", audience: "cultural:solo-dance" });
+  check("club admin posts to their event", r.status === 200, r);
+  r = await call("ca", "POST", "/api/admin/announcements", { title: "x", body: "y", audience: "all" });
+  check("club admin can't post to everyone → 403", r.status === 403, r);
+  r = await call("ma", "POST", "/api/admin/announcements", { title: "E2E everyone", body: "Hello all", audience: "all" });
+  check("main admin posts to everyone", r.status === 200, r);
+  r = await call("s1", "GET", "/api/me");
+  check("student sees their trial + both notices", r.data.trials?.some((x) => x.id === trialId) && r.data.announcements?.some((a) => a.title === "E2E notice") && r.data.announcements?.some((a) => a.title === "E2E everyone"), { trials: r.data.trials, ann: r.data.announcements?.map((a) => a.title) });
+  r = await call("ca", "GET", "/api/admin/scores?event=cultural:solo-dance");
+  const crit = r.data.criteria ?? [];
+  check("judging sheet uses rulebook criteria", r.status === 200 && crit.includes("Relevance to theme"), r.data.criteria);
+  const full = (n) => Object.fromEntries(crit.map((c) => [c, n]));
+  r = await call("ca", "POST", "/api/admin/scores", { entryId: eid(s1.uid, "cultural:solo-dance"), scores: full(8) });
+  check("club admin scores student 1", r.status === 200, r);
+  await call("ma", "POST", "/api/admin/scores", { entryId: eid(s1.uid, "cultural:solo-dance"), scores: full(6) });
+  await call("ca", "POST", "/api/admin/scores", { entryId: eid(s2.uid, "cultural:solo-dance"), scores: full(9) });
+  r = await call("ca", "POST", "/api/admin/scores", { entryId: eid(s2.uid, "cultural:solo-dance"), scores: full(11) });
+  check("score above 10 → 400", r.status === 400, r);
+  r = await call("ca", "GET", "/api/admin/scores?event=cultural:solo-dance");
+  const rows = Object.fromEntries((r.data.rows ?? []).map((x) => [x.uid, x]));
+  check("average across judges + ranking", rows[s1.uid]?.average === crit.length * 7 && rows[s1.uid]?.judges === 2 && rows[s2.uid]?.rank === 1 && rows[s1.uid]?.rank === 2, r.data.rows);
+  r = await call("ma", "PATCH", `/api/admin/entries/${eid(s2.uid, "literary:mime")}`, { teamRole: "main" });
+  check("mark team role (main)", r.status === 200, r);
+
+  console.log("Freeze, block, schedule, activity, final list, stats");
+  r = await call("ma", "PATCH", "/api/admin/settings", { selectionFrozen: true });
+  check("freeze without password → 401", r.status === 401, r);
+  r = await call("ma", "PATCH", "/api/admin/settings", { selectionFrozen: true, finalPassword: FINAL });
+  check("main admin freezes selections", r.status === 200, r);
+  await new Promise((res) => setTimeout(res, 16000)); // settings are cached up to 15 s per server instance
+  r = await call("ca", "PATCH", `/api/admin/entries/${eid(s2.uid, "cultural:solo-dance")}`, { status: "shortlisted" });
+  check("frozen: status change → 423", r.status === 423, r);
+  r = await call("ca", "POST", "/api/admin/entries", { uid: s2.uid, eventKey: "cultural:group-dance" });
+  check("frozen: add member → 423", r.status === 423, r);
+  r = await call("ma", "PATCH", `/api/admin/entries/${eid(s2.uid, "literary:mime")}`, { teamRole: "sub" });
+  check("frozen: team change → 423", r.status === 423, r);
+  r = await call("ca", "PATCH", `/api/admin/entries/${eid(s2.uid, "cultural:solo-dance")}`, { present: true });
+  check("frozen: attendance still allowed", r.status === 200, r);
+  r = await call("ma", "PATCH", "/api/admin/settings", { selectionFrozen: false, finalPassword: FINAL });
+  check("main admin unfreezes", r.status === 200, r);
+  r = await call("ma", "GET", "/api/admin/final");
+  check("final list: 2 students, grouped by event", r.status === 200 && r.data.studentCount === 2 && r.data.events.some((g) => g.key === "literary:mime" && g.people.some((p) => p.teamRole === "main")), r.data);
+  r = await fetch(`${BASE}/api/admin/final?format=csv-event`, { headers: { Authorization: `Bearer ${tokens.ma}` } });
+  check("final list CSV by event", r.status === 200 && (await r.text()).includes("Main"));
+  r = await call("ca", "GET", "/api/admin/final");
+  check("club admin can't see final list → 403", r.status === 403, r);
+  r = await call("ca", "GET", "/api/admin/stats");
+  check("club stats scoped to their club", r.status === 200 && r.data.scope === "cultural" && r.data.events.every((e) => e.category === "cultural"), r.data.scope);
+  r = await call("ma", "GET", "/api/admin/stats");
+  check("main stats: votes counted", r.status === 200 && r.data.votes >= 3 && r.data.students >= 2, { votes: r.data.votes, students: r.data.students });
+  r = await call("ma", "PATCH", "/api/admin/settings", { opensAt: Date.now() + 3600e3, closesAt: Date.now() + 7200e3 });
+  check("schedule registration window", r.status === 200, r);
+  r = await call("ma", "GET", "/api/admin/overview");
+  check("scheduled in the future → closed now", r.data.registrationOpen === false && r.data.settings.opensAt > Date.now(), r.data.settings);
+  r = await call("ma", "PATCH", "/api/admin/settings", { opensAt: Date.now() - 60e3, closesAt: Date.now() + 3600e3 });
+  r = await call("ma", "GET", "/api/admin/overview");
+  check("inside the window → open", r.data.registrationOpen === true, r.data.settings);
+  r = await call("ma", "PATCH", "/api/admin/settings", { opensAt: null, closesAt: null, registrationOpen: true });
+  r = await call("ma", "POST", "/api/admin/blocked", { email: s2.email, reason: "E2E test" });
+  check("main admin blocks student 2", r.status === 200, r);
+  await new Promise((res) => setTimeout(res, 31000)); // block list is cached up to 30 s per server instance
+  r = await call("s2", "GET", "/api/me");
+  check("blocked student gets 403 with reason", r.status === 403 && /blocked/i.test(r.data.error) && /E2E test/.test(r.data.error), r);
+  r = await call("ma", "DELETE", `/api/admin/blocked?email=${encodeURIComponent(s2.email)}`);
+  check("unblock", r.status === 200, r);
+  r = await call("ma", "GET", "/api/admin/activity");
+  const acts = (r.data.activity ?? []).map((a) => a.action);
+  check("activity log records the key actions", ["final", "member.add", "member.remove", "vote.adjust", "settings", "block", "announce", "trial.add", "score", "team"].every((a) => acts.includes(a)), [...new Set(acts)]);
+  r = await call("ca", "GET", "/api/admin/activity");
+  check("club admin sees only their club's activity", r.status === 200 && r.data.activity.every((a) => a.club === "cultural"), r.data.activity?.slice(0, 3));
 
   console.log("Export & main-admin edits");
   r = await fetch(`${BASE}/api/admin/export`, { headers: { Authorization: `Bearer ${tokens.ca}` } });
@@ -323,6 +397,10 @@ async function cleanup() {
     await rtdb("PUT", `roles/${keyOf(USERS.ma.email)}`, { email: USERS.ma.email, role: "main_admin", club: null });
     await call("ma", "PATCH", "/api/admin/settings", { registrationOpen: !!snapshot.settings?.app?.registrationOpen });
     await rtdb("DELETE", `roles/${keyOf(USERS.ma.email)}`);
+    // Drop the activity-log line that restore itself just wrote.
+    const log = (await rtdb("GET", "audit")) ?? {};
+    const own = Object.entries(log).filter(([, e]) => String(e.by).startsWith("zz-e2e")).map(([k]) => [`audit/${k}`, null]);
+    if (own.length) await rtdb("PATCH", "", Object.fromEntries(own));
   }
   for (const u of Object.values(USERS)) if (u.uid) await auth.deleteUser(u.uid).catch(() => {});
   const accounts = [env.CLOUDINARY_URL_PRIMARY, env.CLOUDINARY_URL_FALLBACK].map((u) => u.match(/^cloudinary:\/\/(\d+):([^@]+)@(.+)$/));

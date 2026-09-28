@@ -12,6 +12,8 @@ import {
   type RegistrationInput,
 } from "@/lib/registration-schema";
 import type { RegistrationRecord } from "@/lib/api-types";
+import { assertNotFrozen } from "@/lib/server/settings";
+import { audit } from "@/lib/server/audit";
 
 type Ctx = { params: Promise<{ uid: string }> };
 
@@ -68,6 +70,7 @@ export const PATCH = handle(async (req: Request, ctx: Ctx) => {
   const removed = [...oldIds].filter((id) => !fresh[id]);
   const added = Object.keys(fresh).filter((id) => !oldIds.has(id));
 
+  if (removed.length || added.length) await assertNotFrozen();
   await removeEntries(removed); // refuses if a removed event is already "selected"
 
   const updates: Record<string, unknown> = { [`registrations/${uid}`]: next };
@@ -80,22 +83,29 @@ export const PATCH = handle(async (req: Request, ctx: Ctx) => {
     updates[`entries/${id}/slot`] = fresh[id].slot;
     updates[`entries/${id}/updatedBy`] = admin.email;
   }
+  for (const id of removed) updates[`scores/${id}`] = null;
   await db.update("", updates);
   await addEntries(uid, added);
+  await audit(admin.email, "student.edit", `Edited ${next.fullName} (${next.studentId})${removed.length || added.length ? `: +${added.length} / −${removed.length} events` : ""}`);
   return ok({ ok: true });
 });
 
 export const DELETE = handle(async (req: Request, ctx: Ctx) => {
-  await requireMainAdmin(req);
+  const admin = await requireMainAdmin(req);
   const { uid } = await ctx.params;
   const reg = await load(uid);
+  await assertNotFrozen();
   const ids = pickedKeys(reg.picks).map((p) => entryId(uid, p.key));
   await removeEntries(ids); // refuses if any event is "selected"
   const updates: Record<string, unknown> = {
     [`registrations/${uid}`]: null,
     [`studentIds/${keyOf(reg.studentId)}`]: null,
   };
-  for (const id of ids) updates[`entries/${id}`] = null;
+  for (const id of ids) {
+    updates[`entries/${id}`] = null;
+    updates[`scores/${id}`] = null;
+  }
   await db.update("", updates);
+  await audit(admin.email, "student.delete", `Deleted registration of ${reg.fullName} (${reg.studentId})`);
   return ok({ ok: true });
 });

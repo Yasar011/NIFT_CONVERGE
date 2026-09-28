@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Check, Loader2, ThumbsDown, ThumbsUp } from "lucide-react";
 import clsx from "clsx";
+import { useAuth, ApiError } from "@/components/auth/AuthProvider";
+import { SignInButton } from "@/components/auth/SignInPanel";
 import { CATEGORY_META } from "@/lib/types";
 import type { LiveParticipant } from "@/lib/api-types";
 
@@ -17,36 +19,11 @@ interface Round {
 }
 
 const POLL = 4000;
-const LS_DEVICE = "cnv26-voter";
-const voteKey = (publicId: string, p: LiveParticipant) => `cnv26-vote:${publicId}:${p.uid}:${p.since}`;
-
-function storage() {
-  try {
-    return window.localStorage;
-  } catch {
-    return null;
-  }
-}
-
-/** Ensures this browser has a voter id (cookie + localStorage) and returns it. */
-async function ensureDevice(): Promise<string> {
-  const saved = storage()?.getItem(LS_DEVICE) ?? "";
-  const res = await fetch("/api/public/device", { method: "POST", headers: saved ? { "x-voter-id": saved } : {} });
-  const { id } = (await res.json()) as { id: string };
-  storage()?.setItem(LS_DEVICE, id);
-  return id;
-}
 
 export default function PublicVote({ publicId }: { publicId: string }) {
-  const [device, setDevice] = useState<string | null>(null);
+  const { status, user, me, error: authError } = useAuth();
   const [round, setRound] = useState<Round | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    ensureDevice()
-      .then(setDevice)
-      .catch(() => setError("Couldn't start voting. Check your connection and reload."));
-  }, []);
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -67,7 +44,7 @@ export default function PublicVote({ publicId }: { publicId: string }) {
           if (alive) setError("You're offline — retrying…");
         }
       }
-      if (alive) timer = setTimeout(tick, POLL);
+      if (alive) timer = setTimeout(tick, POLL + Math.random() * 1500);
     }
     tick();
     const onVisible = () => document.visibilityState === "visible" && tick();
@@ -80,6 +57,7 @@ export default function PublicVote({ publicId }: { publicId: string }) {
   }, [publicId]);
 
   const meta = round ? CATEGORY_META[round.category] : null;
+  const signedIn = status === "signed-in" && !!me;
 
   return (
     <div className="min-h-[80vh]">
@@ -103,8 +81,16 @@ export default function PublicVote({ publicId }: { publicId: string }) {
         {round && round.status === "running" && !round.live && (
           <Waiting title="Waiting for the next performer" text="The next performer appears here as soon as they're called on stage." />
         )}
-        {round && round.status === "running" && round.live && device && (
-          <PerformerCard key={`${round.live.uid}-${round.live.since}`} publicId={publicId} performer={round.live} device={device} />
+        {round && round.status === "running" && round.live && (
+          <PerformerCard
+            key={`${round.live.uid}-${round.live.since}`}
+            publicId={publicId}
+            performer={round.live}
+            signedIn={signedIn}
+            isMe={round.live.uid === user?.uid}
+            authLoading={status === "loading" || (status === "signed-in" && !me && !authError)}
+            authError={authError}
+          />
         )}
         {round && (round.status === "ended" || round.status === "published") && (
           <Waiting
@@ -115,56 +101,56 @@ export default function PublicVote({ publicId }: { publicId: string }) {
         )}
 
         <p className="mt-10 text-center text-xs text-ink-soft">
-          One vote per performer on each device. Vote counts are only visible to the organisers.
+          Sign in with your NIFT account to vote — one vote per performer. Counts are only visible to the organisers.
         </p>
       </div>
     </div>
   );
 }
 
-function PerformerCard({ publicId, performer, device }: { publicId: string; performer: LiveParticipant; device: string }) {
-  const [voted, setVoted] = useState<string | null>(() => storage()?.getItem(voteKey(publicId, performer)) ?? null);
-  const [checking, setChecking] = useState(!voted);
+function PerformerCard({
+  publicId,
+  performer,
+  signedIn,
+  isMe,
+  authLoading,
+  authError,
+}: {
+  publicId: string;
+  performer: LiveParticipant;
+  signedIn: boolean;
+  isMe: boolean;
+  authLoading: boolean;
+  authError: string | null;
+}) {
+  const { api } = useAuth();
+  const [voted, setVoted] = useState<string | null>(null);
+  const [checking, setChecking] = useState(true);
   const [sending, setSending] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
-  // Confirm with the server — it's the source of truth for "already voted".
+  // Once signed in, ask the server whether this account already voted.
   useEffect(() => {
+    if (!signedIn) return;
     let alive = true;
-    fetch(`/api/public/vote/${publicId}?participant=${performer.uid}`, { headers: { "x-voter-id": device }, cache: "no-store" })
-      .then((r) => r.json())
-      .then((d) => {
-        if (!alive) return;
-        if (d.voted) {
-          setVoted(d.voted);
-          storage()?.setItem(voteKey(publicId, performer), d.voted);
-        }
-      })
+    api<{ voted: string | null }>(`/api/public/vote/${publicId}?participant=${performer.uid}`)
+      .then((d) => alive && setVoted(d.voted))
       .catch(() => {})
       .finally(() => alive && setChecking(false));
     return () => {
       alive = false;
     };
-  }, [publicId, performer, device]);
+  }, [api, publicId, performer.uid, signedIn]);
 
   async function vote(value: "good" | "reject") {
     setSending(value);
     setMsg(null);
     try {
-      const res = await fetch(`/api/public/vote/${publicId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-voter-id": device },
-        body: JSON.stringify({ participant: performer.uid, value }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setVoted(value);
-        storage()?.setItem(voteKey(publicId, performer), value);
-      } else if (res.status === 409 && /already voted/i.test(data.error)) {
-        setVoted("already");
-      } else setMsg(data.error || "Couldn't record your vote.");
-    } catch {
-      setMsg("You're offline — try again.");
+      await api(`/api/public/vote/${publicId}`, { body: { participant: performer.uid, value } });
+      setVoted(value);
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 409 && /already voted/i.test(e.message)) setVoted("already");
+      else setMsg(e instanceof Error ? e.message : "Couldn't record your vote.");
     } finally {
       setSending(null);
     }
@@ -184,7 +170,17 @@ function PerformerCard({ publicId, performer, device }: { publicId: string; perf
         <p className="mt-1 text-sm text-ink-soft">{performer.department}</p>
 
         <div className="mt-6" aria-live="polite">
-          {checking ? (
+          {authLoading ? (
+            <Spinner text="Checking your account…" />
+          ) : !signedIn ? (
+            <div className="border-2 border-dashed border-ink/40 p-4 text-center">
+              <p className="font-semibold">Sign in with your NIFT account to vote</p>
+              {authError && <p className="mt-2 text-sm font-semibold text-sindoor">{authError}</p>}
+              <SignInButton className="mt-3" />
+            </div>
+          ) : isMe ? (
+            <p className="border-2 border-dashed border-ink/40 p-4 text-center font-semibold">That&apos;s you on stage — good luck!</p>
+          ) : checking ? (
             <Spinner text="Checking…" />
           ) : voted ? (
             <p className={clsx("flex items-center justify-center gap-2 border-2 p-4 text-center font-bold uppercase tracking-wide", voted === "good" ? "border-peacock bg-peacock text-paper" : "border-ink bg-paper-2")}>

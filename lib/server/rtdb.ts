@@ -11,26 +11,65 @@ const BASE =
 
 const token = accessToken;
 
-type Query = { orderBy?: string; equalTo?: string | number | boolean; shallow?: boolean };
+type Query = {
+  orderBy?: string;
+  equalTo?: string | number | boolean;
+  endAt?: string | number;
+  limitToLast?: number;
+  shallow?: boolean;
+};
 
 function url(path: string, q?: Query) {
   const clean = path.replace(/^\/+|\/+$/g, "");
   const u = new URL(`${BASE}/${clean}.json`);
   if (q?.orderBy) u.searchParams.set("orderBy", JSON.stringify(q.orderBy));
   if (q?.equalTo !== undefined) u.searchParams.set("equalTo", JSON.stringify(q.equalTo));
+  if (q?.endAt !== undefined) u.searchParams.set("endAt", JSON.stringify(q.endAt));
+  if (q?.limitToLast) u.searchParams.set("limitToLast", String(q.limitToLast));
   if (q?.shallow) u.searchParams.set("shallow", "true");
   return u.toString();
 }
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * One REST call. If the database is busy (429) or has a hiccup (5xx / network),
+ * wait a random 100–1500 ms and retry, up to 4 times — random jitter spreads a
+ * burst of requests (e.g. hundreds of logins at once) instead of piling them up.
+ */
 async function call(method: string, path: string, body?: unknown, headers: Record<string, string> = {}, q?: Query) {
-  const res = await fetch(url(path, q), {
+  const init = {
     method,
     headers: { Authorization: `Bearer ${await token()}`, ...headers, ...(body !== undefined ? { "Content-Type": "application/json" } : {}) },
     body: body === undefined ? undefined : JSON.stringify(body),
-    cache: "no-store",
-  });
-  return res;
+    cache: "no-store" as const,
+  };
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const res = await fetch(url(path, q), init);
+      if ((res.status === 429 || res.status >= 500) && attempt < 4) {
+        await sleep(100 * 2 ** attempt + Math.random() * 300 * (attempt + 1));
+        continue;
+      }
+      return res;
+    } catch (e) {
+      if (attempt >= 4) throw e;
+      await sleep(100 * 2 ** attempt + Math.random() * 300 * (attempt + 1));
+    }
+  }
 }
+
+/** Tiny per-instance TTL cache for hot, rarely-changing reads (roles, settings). */
+const memo = new Map<string, { at: number; value: unknown }>();
+export async function cached<T>(key: string, ttlMs: number, load: () => Promise<T>): Promise<T> {
+  const hit = memo.get(key);
+  if (hit && Date.now() - hit.at < ttlMs) return hit.value as T;
+  const value = await load();
+  memo.set(key, { at: Date.now(), value });
+  if (memo.size > 5000) memo.clear();
+  return value;
+}
+export const forget = (key: string) => memo.delete(key);
 
 async function json<T>(res: Response): Promise<T> {
   if (!res.ok) {

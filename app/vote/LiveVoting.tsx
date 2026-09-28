@@ -24,7 +24,7 @@ export default function LiveVoting() {
           /* keep the last list */
         }
       }
-      if (alive) timer = setTimeout(tick, 10000);
+      if (alive) timer = setTimeout(tick, 10000 + Math.random() * 3000);
     }
     tick();
     return () => {

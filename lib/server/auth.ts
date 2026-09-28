@@ -1,5 +1,5 @@
 import { verifyIdToken, type IdToken } from "./google";
-import { db, keyOf } from "./rtdb";
+import { db, keyOf, cached } from "./rtdb";
 import { HttpError } from "./http";
 import type { EventCategory } from "../types";
 
@@ -44,15 +44,29 @@ async function verify(req: Request): Promise<IdToken> {
 export async function roleFor(email: string): Promise<{ role: Role; club: EventCategory | null }> {
   const e = email.toLowerCase();
   if (MAIN_ADMINS.includes(e)) return { role: "main_admin", club: null };
-  const d = await db.get<{ role: Role; club?: EventCategory }>(`roles/${keyOf(e)}`);
+  // Cached briefly per server instance: a burst of logins/votes reads it once.
+  const d = await cached(`role:${e}`, 30_000, () => db.get<{ role: Role; club?: EventCategory }>(`roles/${keyOf(e)}`));
   if (d?.role === "main_admin") return { role: "main_admin", club: null };
   if (d?.role === "club_admin" && d.club) return { role: "club_admin", club: d.club };
   return { role: "student", club: null };
 }
 
+export async function isBlocked(email: string) {
+  return cached(`blocked:${email.toLowerCase()}`, 30_000, () =>
+    db.get<{ reason?: string }>(`blocked/${keyOf(email)}`)
+  );
+}
+
 export async function requireUser(req: Request): Promise<SessionUser> {
   const t = await verify(req);
-  const { role, club } = await roleFor(t.email!);
+  const [{ role, club }, blocked] = await Promise.all([roleFor(t.email!), isBlocked(t.email!)]);
+  if (blocked && role === "student") {
+    throw new HttpError(
+      403,
+      `Your account has been blocked by the organisers${blocked.reason ? ` (${blocked.reason})` : ""}. Contact the Campus SDAC.`,
+      { blocked: "1" }
+    );
+  }
   return {
     uid: t.uid,
     email: t.email!.toLowerCase(),

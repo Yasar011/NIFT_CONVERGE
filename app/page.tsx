@@ -10,6 +10,7 @@ import Marquee from "@/components/Marquee";
 import { CATEGORY_META, CATEGORY_ORDER } from "@/lib/types";
 import { EVENTS, getEventsByCategory } from "@/lib/events";
 import { getSettings } from "@/lib/server/settings";
+import { isRegistrationOpen } from "@/lib/settings-shared";
 
 const ARENA_HOVER: Record<string, string> = {
   sports: "hover:bg-sindoor hover:text-paper",
@@ -20,7 +21,7 @@ const ARENA_HOVER: Record<string, string> = {
 };
 
 export default async function Home() {
-  const { registrationOpen: REGISTRATION_OPEN } = await getSettings();
+  const REGISTRATION_OPEN = isRegistrationOpen(await getSettings());
   return (
     <>
       {/* HERO */}

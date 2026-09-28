@@ -5,6 +5,8 @@ import { queryEntries, snapshotOf } from "@/lib/server/entries";
 import { addEntries, entryId } from "@/lib/server/selection";
 import { getEventByKey, genderRequirement, eventLabel } from "@/lib/events";
 import { MAX_EVENTS, pickedKeys, picksFrom } from "@/lib/registration-schema";
+import { assertNotFrozen } from "@/lib/server/settings";
+import { audit } from "@/lib/server/audit";
 import type { EntryRecord, RegistrationRecord } from "@/lib/api-types";
 import type { EventCategory } from "@/lib/types";
 
@@ -29,6 +31,7 @@ export const POST = handle(async (req: Request) => {
   const event = getEventByKey(body.eventKey || "");
   if (!event || event.nonCompetitive) throw new HttpError(400, "Choose an event.");
   assertClubAccess(admin, event.category);
+  await assertNotFrozen();
 
   const reg = await db.get<RegistrationRecord>(`registrations/${body.uid}`);
   if (!reg) throw new HttpError(404, "That student hasn't registered yet.");
@@ -64,5 +67,6 @@ export const POST = handle(async (req: Request) => {
     [`registrations/${reg.uid}/updatedAt`]: now,
   });
   await addEntries(reg.uid, [id]);
+  await audit(admin.email, "member.add", `Added ${reg.fullName} (${reg.studentId}) to ${eventLabel(event)}`, event.category);
   return ok({ ok: true, id });
 });
