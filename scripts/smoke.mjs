@@ -46,13 +46,16 @@ try {
   r = await fetch(`${BASE}/api/live`);
   check("public live list", r.status === 200 && Array.isArray((await r.json()).rounds));
 
-  r = await fetch(`${BASE}/api/public/device`, { method: "POST" });
-  check("public voter id + cookie", r.status === 200 && (r.headers.get("set-cookie") || "").includes("cnv_vid"));
+  r = await fetch(`${BASE}/api/public/vote/doesnotexist`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+  check("voting requires sign-in (401)", r.status === 401);
+
+  r = await fetch(`${BASE}/api/admin/stats`, { headers: H });
+  check("admin stats blocked for students (403)", r.status === 403);
 
   r = await fetch(`${BASE}/api/public/vote/doesnotexist`);
   check("unknown voting link → 404", r.status === 404);
 
-  for (const p of ["/", "/events", "/register", "/vote", "/results", "/login", "/admin", "/me"]) {
+  for (const p of ["/", "/events", "/register", "/vote", "/results", "/login", "/me", "/admin", "/admin/final", "/admin/stats", "/admin/trials", "/admin/judging", "/admin/teams", "/admin/activity", "/admin/print"]) {
     r = await fetch(`${BASE}${p}`);
     check(`page ${p}`, r.status === 200, r.status);
   }
