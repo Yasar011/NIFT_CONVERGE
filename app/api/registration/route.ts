@@ -3,6 +3,8 @@ import { requireUser } from "@/lib/server/auth";
 import { db, keyOf } from "@/lib/server/rtdb";
 import { assertOwnMedia } from "@/lib/server/cloudinary";
 import { readSettings } from "@/lib/server/settings";
+import { readDeadlines, fmtDeadline } from "@/lib/server/deadlines";
+import { getEventByKey, eventLabel } from "@/lib/events";
 import { isRegistrationOpen } from "@/lib/settings-shared";
 import { audit } from "@/lib/server/audit";
 import { entriesFor } from "@/lib/server/entries";
@@ -22,6 +24,16 @@ export const POST = handle(async (req: Request) => {
 
   const input = await readJson<RegistrationInput>(req);
   const errors = validateRegistration(input);
+  // An event stops taking registrations once its first trial starts.
+  const deadlines = await readDeadlines();
+  for (const slot of PICK_SLOTS) {
+    const key = input.picks?.[slot];
+    const d = key ? deadlines[key] : undefined;
+    if (d && Date.now() >= d.at) {
+      const ev = getEventByKey(key);
+      errors[slot] = `${ev ? eventLabel(ev) : "This event"} closed when its trial started (${fmtDeadline(d)}).`;
+    }
+  }
   if (Object.keys(errors).length) throw new HttpError(422, "Please fix the highlighted fields.", errors);
 
   const photo = assertOwnMedia(input.photo, "photo");

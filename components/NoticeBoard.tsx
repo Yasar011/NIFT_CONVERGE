@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CalendarDays, MapPin, Megaphone } from "lucide-react";
 import clsx from "clsx";
 import { getBoard } from "@/lib/server/board";
+import { getDeadlines } from "@/lib/server/deadlines";
 import { getEventByKey, eventLabel } from "@/lib/events";
 import { CATEGORY_META } from "@/lib/types";
 
@@ -14,7 +15,7 @@ const fmtTime = (t: string) => {
 
 /** Home-page notice board: upcoming trials + notices for everyone. */
 export default async function NoticeBoard() {
-  const { notices, trials } = await getBoard();
+  const [{ notices, trials }, deadlines] = await Promise.all([getBoard(), getDeadlines()]);
   if (!notices.length && !trials.length) return null;
 
   return (
@@ -44,6 +45,11 @@ export default async function NoticeBoard() {
                         <span>{fmtDate(t.date)} · {fmtTime(t.time)}</span>
                         <span className="inline-flex items-center gap-1"><MapPin size={13} /> {t.venue}</span>
                       </span>
+                      {deadlines[t.eventKey]?.id === t.id && (
+                        <span className="mt-1.5 inline-block bg-ink px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-paper">
+                          Last chance to register — closes at this trial
+                        </span>
+                      )}
                       {t.notes && <span className="mt-1 block text-sm">{t.notes}</span>}
                     </span>
                   </li>

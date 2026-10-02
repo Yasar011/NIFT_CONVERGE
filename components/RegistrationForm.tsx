@@ -84,8 +84,11 @@ export function RegistrationFields({
   disabled,
   email,
   forUid,
+  deadlines,
 }: {
   forUid?: string;
+  /** eventKey → when registration closes (its first trial). Admin screens omit this. */
+  deadlines?: Deadlines;
   data: RegistrationInput;
   update: <K extends keyof RegistrationInput>(key: K, value: RegistrationInput[K]) => void;
   errors: RegistrationErrors;
@@ -98,6 +101,8 @@ export function RegistrationFields({
     "aria-describedby": errors[key] ? `${key}-error` : undefined,
   });
   const setPick = (slot: PickSlot, value: string) => update("picks", { ...data.picks, [slot]: value });
+  const [now] = useState(() => Date.now());
+  const closed = (key: string) => !!deadlines?.[key] && now >= deadlines[key].at;
 
   return (
     <fieldset disabled={disabled} className="space-y-14">
@@ -181,8 +186,9 @@ export function RegistrationFields({
                           const need = genderRequirement(ev);
                           const blocked = !!need && !!data.gender && data.gender !== need;
                           return (
-                            <option key={key} value={key} disabled={taken.includes(key) || blocked}>
+                            <option key={key} value={key} disabled={taken.includes(key) || blocked || closed(key)}>
                               {eventLabel(ev)}
+                              {deadlines?.[key] ? (closed(key) ? " — closed (trials started)" : ` — closes ${deadlines[key].label}`) : ""}
                             </option>
                           );
                         })}
@@ -193,6 +199,9 @@ export function RegistrationFields({
                     <p id={`${slot}-error`} className="mt-2 text-sm font-semibold text-sindoor">
                       {errors[slot]}
                     </p>
+                  )}
+                  {!errors[slot] && data.picks[slot] && deadlines?.[data.picks[slot]] && (
+                    <p className="mt-2 text-xs text-ink-soft">Registration closes {deadlines[data.picks[slot]].label} — its first trial.</p>
                   )}
                 </div>
               </div>
@@ -211,7 +220,9 @@ export function RegistrationFields({
   );
 }
 
-export default function RegistrationForm({ registrationOpen }: { registrationOpen: boolean }) {
+export type Deadlines = Record<string, { at: number; label: string }>;
+
+export default function RegistrationForm({ registrationOpen, deadlines }: { registrationOpen: boolean; deadlines?: Deadlines }) {
   const { status, me, user, error } = useAuth();
   const router = useRouter();
 
@@ -249,10 +260,20 @@ export default function RegistrationForm({ registrationOpen }: { registrationOpe
     );
   }
 
-  return <FormBody registrationOpen={registrationOpen} initialName={user?.displayName ?? ""} email={user?.email ?? undefined} />;
+  return <FormBody registrationOpen={registrationOpen} deadlines={deadlines} initialName={user?.displayName ?? ""} email={user?.email ?? undefined} />;
 }
 
-function FormBody({ registrationOpen, initialName, email }: { registrationOpen: boolean; initialName: string; email?: string }) {
+function FormBody({
+  registrationOpen,
+  initialName,
+  email,
+  deadlines,
+}: {
+  registrationOpen: boolean;
+  initialName: string;
+  email?: string;
+  deadlines?: Deadlines;
+}) {
   const { api, refresh } = useAuth();
   const router = useRouter();
   const [data, setData] = useState<RegistrationInput>(() => ({ ...EMPTY_REGISTRATION, fullName: initialName }));
@@ -299,7 +320,7 @@ function FormBody({ registrationOpen, initialName, email }: { registrationOpen: 
 
   return (
     <form onSubmit={submit} noValidate className="space-y-14">
-      <RegistrationFields data={data} update={update} errors={errors} disabled={!registrationOpen || submitting} email={email} />
+      <RegistrationFields data={data} update={update} errors={errors} disabled={!registrationOpen || submitting} email={email} deadlines={deadlines} />
 
       <section>
         <StepTitle n="03" title="Confirm" />

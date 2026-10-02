@@ -6,7 +6,8 @@ import PageHeader from "@/components/PageHeader";
 import RegisterCta from "@/components/RegisterCta";
 import { genderSuffix } from "@/components/EventRow";
 import { CATEGORY_META, EventCategory } from "@/lib/types";
-import { EVENTS, getEventBySlug, getEventsByCategory } from "@/lib/events";
+import { EVENTS, getEventBySlug, getEventsByCategory, eventKey } from "@/lib/events";
+import { getDeadlines, fmtDeadline } from "@/lib/server/deadlines";
 
 export function generateStaticParams() {
   return EVENTS.map((e) => ({ category: e.category, slug: e.slug }));
@@ -64,6 +65,7 @@ export default async function EventDetailPage({
   const prev = siblings[pos - 1];
   const next = siblings[pos + 1];
   const suffix = genderSuffix(event);
+  const deadline = (await getDeadlines())[eventKey(event)];
 
   const facts: { k: string; v?: string }[] = [
     { k: "Arena", v: meta.label },
@@ -110,6 +112,11 @@ export default async function EventDetailPage({
                   </div>
                 ))}
             </dl>
+            {deadline && (
+              <p className="mt-3 border-2 border-ink bg-marigold p-3 text-sm">
+                <strong>Registration closes {fmtDeadline(deadline)}</strong> — when its first trial ({deadline.title}) starts.
+              </p>
+            )}
             {event.nonCompetitive && (
               <p className="mt-3 border-2 border-dashed border-ink/40 p-3 text-sm text-ink-soft">
                 Non-competitive — this event carries no points.

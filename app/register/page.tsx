@@ -3,6 +3,7 @@ import PageHeader from "@/components/PageHeader";
 import RegistrationForm from "@/components/RegistrationForm";
 import { getSettings } from "@/lib/server/settings";
 import { isRegistrationOpen } from "@/lib/settings-shared";
+import { getDeadlines, fmtDeadline } from "@/lib/server/deadlines";
 
 export const metadata = { title: "Register | NIFT Jodhpur Converge 2026" };
 
@@ -19,6 +20,8 @@ const CHECKLIST = [
 
 export default async function RegisterPage() {
   const registrationOpen = isRegistrationOpen(await getSettings());
+  const raw = await getDeadlines();
+  const deadlines = Object.fromEntries(Object.entries(raw).map(([k, d]) => [k, { at: d.at, label: fmtDeadline(d) }]));
   return (
     <>
       <PageHeader
@@ -63,7 +66,7 @@ export default async function RegisterPage() {
         </aside>
 
         <div className="lg:col-span-8">
-          <RegistrationForm registrationOpen={registrationOpen} />
+          <RegistrationForm registrationOpen={registrationOpen} deadlines={deadlines} />
         </div>
       </div>
     </>

@@ -58,6 +58,10 @@ export default function TrialsPage() {
 
       <form onSubmit={add} className="border-2 border-ink bg-paper p-5">
         <p className="label">Schedule a trial</p>
+        <p className="mt-1 text-sm text-ink-soft">
+          Students can register for an event only until its <strong>first trial starts</strong>. After that the event is closed
+          for self-registration — you can still add late students from Participants → Add member.
+        </p>
         <div className="mt-3 grid gap-3 md:grid-cols-3">
           <label className="md:col-span-1">
             <span className="label mb-1.5 block text-ink-soft">Event</span>

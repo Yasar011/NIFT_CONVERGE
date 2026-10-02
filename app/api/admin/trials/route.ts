@@ -1,6 +1,7 @@
 import { revalidateTag } from "next/cache";
 import { after } from "next/server";
 import { notify } from "@/lib/server/push";
+import { readDeadlines } from "@/lib/server/deadlines";
 import { handle, ok, readJson, HttpError } from "@/lib/server/http";
 import { requireAdmin, assertClubAccess } from "@/lib/server/auth";
 import { db } from "@/lib/server/rtdb";
@@ -48,9 +49,12 @@ export const POST = handle(async (req: Request) => {
   const when = new Date(`${trial.date}T${trial.time}`).toLocaleString("en-IN", {
     weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "UTC",
   });
+  const first = (await readDeadlines())[trial.eventKey]?.id === id;
   const message = {
     title: `🗓 ${eventLabel(event)}: ${trial.title}`,
-    body: `${when} · ${venue}${trial.notes ? `\n${trial.notes}` : ""}`,
+    body: `${when} · ${venue}${trial.notes ? `\n${trial.notes}` : ""}${
+      first ? `\nRegistration for ${eventLabel(event)} closes when this trial starts.` : ""
+    }`,
     url: body.notifyEveryone ? "/" : "/me",
     tag: `trial-${id}`,
   };
