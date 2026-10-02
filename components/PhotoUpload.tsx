@@ -12,7 +12,9 @@ export default function PhotoUpload({
   onChange,
   error,
   disabled,
+  forUid,
 }: {
+  forUid?: string;
   value: MediaRef | null;
   onChange: (ref: MediaRef) => void;
   error?: string;
@@ -28,7 +30,7 @@ export default function PhotoUpload({
     setFailed(null);
     setProgress(0);
     try {
-      onChange(await uploadMedia(api, file, "photo", { onProgress: setProgress }));
+      onChange(await uploadMedia(api, file, "photo", { onProgress: setProgress, forUid }));
     } catch (e) {
       setFailed(e instanceof Error ? e.message : "Upload failed.");
     } finally {

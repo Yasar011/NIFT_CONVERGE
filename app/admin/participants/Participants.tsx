@@ -8,6 +8,7 @@ import clsx from "clsx";
 import { useAuth, ApiError } from "@/components/auth/AuthProvider";
 import { Btn, ErrorNote, Loading, PageTitle, inputCls, useApi, useDownload } from "@/components/admin/kit";
 import { FinalPasswordProvider, useFinalPassword } from "@/components/admin/FinalPassword";
+import NewStudentForm from "@/components/admin/NewStudentForm";
 import StatusBadge from "@/components/StatusBadge";
 import { uploadMedia } from "@/lib/client/upload";
 import { PICKABLE_EVENTS, eventKey, eventLabel, getEventByKey, capacityOf, genderRequirement } from "@/lib/events";
@@ -199,6 +200,7 @@ function AddMember({ defaultEvent, events, onClose, onAdded }: { defaultEvent: s
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [showNew, setShowNew] = useState(false);
 
   const ev = event ? getEventByKey(event) : null;
   const need = ev ? genderRequirement(ev) : null;
@@ -274,9 +276,35 @@ function AddMember({ defaultEvent, events, onClose, onAdded }: { defaultEvent: s
               </li>
             );
           })}
-          {!matches.length && <li className="py-4 text-sm text-ink-soft">No registered student matches. They need to register first.</li>}
+          {!matches.length && <li className="py-4 text-sm text-ink-soft">No registered student matches — add them by email below.</li>}
         </ul>
       )}
+
+      <div className="mt-5 border-t-2 border-dashed border-ink/30 pt-4">
+        <button
+          type="button"
+          onClick={() => setShowNew((v) => !v)}
+          aria-expanded={showNew}
+          className="cursor-pointer text-sm font-bold uppercase tracking-wide underline underline-offset-4"
+        >
+          {showNew ? "Hide" : "Not registered? Add a new student by email"}
+        </button>
+        {showNew && (
+          <div className="mt-4">
+            {event ? (
+              <NewStudentForm
+                fixedEvent={event}
+                onDone={(text) => {
+                  setMsg({ ok: true, text });
+                  onAdded();
+                }}
+              />
+            ) : (
+              <p className="text-sm text-ink-soft">Choose the event above first.</p>
+            )}
+          </div>
+        )}
+      </div>
     </section>
   );
 }

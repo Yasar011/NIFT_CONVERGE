@@ -1,3 +1,4 @@
+import { revalidateTag } from "next/cache";
 import { handle, ok, readJson, HttpError } from "@/lib/server/http";
 import { requireAdmin, type SessionUser } from "@/lib/server/auth";
 import { db } from "@/lib/server/rtdb";
@@ -45,6 +46,7 @@ export const POST = handle(async (req: Request) => {
 
   const record: Omit<Announcement, "id"> = { title, body: text, audience, createdBy: admin.email, at: Date.now() };
   const id = await db.push("announcements", record);
+  revalidateTag("board", { expire: 0 });
   await audit(admin.email, "announce", `Posted "${title}" to ${audience}`, clubOf(audience));
   return ok({ id });
 });
@@ -56,6 +58,7 @@ export const DELETE = handle(async (req: Request) => {
   if (!a) throw new HttpError(404, "Announcement not found.");
   if (!canManage(admin, a.audience, a.club)) throw new HttpError(403, "You can't remove this announcement.");
   await db.remove(`announcements/${id}`);
+  revalidateTag("board", { expire: 0 });
   await audit(admin.email, "announce.delete", `Removed "${a.title}"`, clubOf(a.audience, a.club));
   return ok({ ok: true });
 });

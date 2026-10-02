@@ -40,7 +40,11 @@ export const PATCH = handle(async (req: Request, ctx: Ctx) => {
   if (Object.keys(errors).length) throw new HttpError(422, "Please fix the highlighted fields.", errors);
 
   const studentId = normaliseStudentId(input.studentId);
-  const photo = input.photo?.url === old.photo?.url ? old.photo : assertOwnMedia(input.photo, "photo");
+  let photo = old.photo;
+  if (input.photo?.url !== old.photo?.url) {
+    photo = assertOwnMedia(input.photo, "photo");
+    if (photo.publicId !== `converge26/profiles/${uid}`) throw new HttpError(400, "Upload the photo again.");
+  }
   const next: RegistrationRecord = {
     ...old,
     fullName: input.fullName.trim(),
@@ -101,6 +105,7 @@ export const DELETE = handle(async (req: Request, ctx: Ctx) => {
     [`registrations/${uid}`]: null,
     [`studentIds/${keyOf(reg.studentId)}`]: null,
   };
+  if ((await db.get<string>(`aliases/${keyOf(reg.email)}`)) === uid) updates[`aliases/${keyOf(reg.email)}`] = null;
   for (const id of ids) {
     updates[`entries/${id}`] = null;
     updates[`scores/${id}`] = null;

@@ -83,7 +83,9 @@ export function RegistrationFields({
   errors,
   disabled,
   email,
+  forUid,
 }: {
+  forUid?: string;
   data: RegistrationInput;
   update: <K extends keyof RegistrationInput>(key: K, value: RegistrationInput[K]) => void;
   errors: RegistrationErrors;
@@ -103,7 +105,7 @@ export function RegistrationFields({
         <StepTitle n="01" title="About you" />
         <div className="mt-6 grid gap-x-5 gap-y-6 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <PhotoUpload value={data.photo} onChange={(p) => update("photo", p)} error={errors.photo} disabled={disabled} />
+            <PhotoUpload value={data.photo} onChange={(p) => update("photo", p)} error={errors.photo} disabled={disabled} forUid={forUid} />
           </div>
           <Field id="fullName" label="Full name" error={errors.fullName}>
             <input {...a11y("fullName")} autoComplete="name" className={control} value={data.fullName} onChange={(e) => update("fullName", e.target.value)} placeholder="As on your NIFT ID" />

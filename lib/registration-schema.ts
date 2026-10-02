@@ -81,9 +81,11 @@ export function validateRegistration(data: RegistrationInput, opts: { admin?: bo
   if (!SEMESTERS.includes(data.semester as never)) errors.semester = "Select your semester.";
   if (!GENDERS.includes(data.gender as never)) errors.gender = "Select an option.";
   const digits = (data.phone ?? "").replace(/\D/g, "");
-  if (!(digits.length === 10 || (digits.length === 12 && digits.startsWith("91"))))
+  const phoneOptional = opts.admin && !digits;
+  if (!phoneOptional && !(digits.length === 10 || (digits.length === 12 && digits.startsWith("91"))))
     errors.phone = "Enter a 10-digit mobile number.";
-  if (!RESIDENCES.includes(data.residence as never)) errors.residence = "Choose Hostel or Day Scholar.";
+  if (!(opts.admin && !data.residence) && !RESIDENCES.includes(data.residence as never))
+    errors.residence = "Choose Hostel or Day Scholar.";
   if (!data.photo?.url) errors.photo = "Upload a clear photo of your face.";
 
   const picks = data.picks ?? EMPTY_REGISTRATION.picks;

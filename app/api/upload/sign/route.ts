@@ -5,11 +5,17 @@ import { db } from "@/lib/server/rtdb";
 import type { EntryRecord } from "@/lib/api-types";
 
 export const POST = handle(async (req: Request) => {
-  const body = await readJson<{ kind: UploadKind; account: AccountName; entryId?: string }>(req);
+  const body = await readJson<{ kind: UploadKind; account: AccountName; entryId?: string; forUid?: string }>(req);
   const account: AccountName = body.account === "fallback" ? "fallback" : "primary";
 
   if (body.kind === "photo") {
     const user = await requireUser(req);
+    // The main admin can upload a photo on a student's behalf.
+    if (body.forUid && body.forUid !== user.uid) {
+      if (user.role !== "main_admin") throw new HttpError(403, "Main admin only.");
+      if (!/^[A-Za-z0-9]{10,40}$/.test(body.forUid)) throw new HttpError(400, "Invalid student.");
+      return ok(signUpload(account, "photo", body.forUid));
+    }
     return ok(signUpload(account, "photo", user.uid));
   }
 

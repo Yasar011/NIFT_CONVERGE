@@ -43,7 +43,7 @@ export async function uploadMedia(
   api: Api,
   file: File,
   kind: "photo" | "video",
-  opts: { entryId?: string; onProgress?: (pct: number) => void } = {}
+  opts: { entryId?: string; forUid?: string; onProgress?: (pct: number) => void } = {}
 ): Promise<MediaRef> {
   if (file.size > LIMITS[kind]) {
     throw new Error(kind === "photo" ? "Photo must be under 8 MB." : "Video must be under 100 MB.");
@@ -51,7 +51,7 @@ export async function uploadMedia(
   let lastError: unknown;
   for (const account of ["primary", "fallback"] as const) {
     try {
-      const signed = await api<Signed>("/api/upload/sign", { body: { kind, account, entryId: opts.entryId } });
+      const signed = await api<Signed>("/api/upload/sign", { body: { kind, account, entryId: opts.entryId, forUid: opts.forUid } });
       opts.onProgress?.(0);
       return await send(signed, file, opts.onProgress);
     } catch (e) {

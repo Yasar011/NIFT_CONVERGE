@@ -2,17 +2,20 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ArrowUpRight, Search } from "lucide-react";
+import { ArrowUpRight, Search, UserPlus } from "lucide-react";
 import clsx from "clsx";
-import { ErrorNote, Loading, PageTitle, inputCls, useApi } from "@/components/admin/kit";
+import { Btn, ErrorNote, Loading, PageTitle, inputCls, useApi } from "@/components/admin/kit";
+import NewStudentForm from "@/components/admin/NewStudentForm";
 import { MAX_SELECTIONS, cldTransform, pickedKeys } from "@/lib/registration-schema";
 import type { RegistrationRecord } from "@/lib/api-types";
 
-type Student = RegistrationRecord & { selectedCount: number };
+type Student = RegistrationRecord & { selectedCount: number; addedBy?: string };
 
 export default function StudentsPage() {
-  const { data, error, loading } = useApi<{ students: Student[] }>("/api/admin/students");
+  const { data, error, loading, reload } = useApi<{ students: Student[] }>("/api/admin/students");
   const [q, setQ] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [done, setDone] = useState<string | null>(null);
   const rows = useMemo(() => {
     const n = q.trim().toLowerCase();
     return (data?.students ?? []).filter(
@@ -22,7 +25,27 @@ export default function StudentsPage() {
 
   return (
     <div className="space-y-6">
-      <PageTitle kicker="Main admin" title="Students" />
+      <PageTitle kicker="Main admin" title="Students">
+        <Btn tone="ink" onClick={() => setAdding((v) => !v)} aria-expanded={adding}>
+          <UserPlus size={14} /> Add student
+        </Btn>
+      </PageTitle>
+      {adding && (
+        <section className="border-2 border-ink bg-paper p-5">
+          <p className="label">Add a student by NIFT email</p>
+          <p className="mb-4 mt-1 text-sm text-ink-soft">
+            For students who haven&apos;t registered themselves. When they sign in with this email, they&apos;ll see their events
+            and QR pass. If the email is already registered, the events are added to it.
+          </p>
+          <NewStudentForm
+            onDone={(text) => {
+              setDone(text);
+              reload();
+            }}
+          />
+        </section>
+      )}
+      {done && <p className="text-sm font-semibold text-peacock">{done}</p>}
       <label className="relative block max-w-md">
         <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft" />
         <span className="sr-only">Search students</span>
@@ -44,6 +67,7 @@ export default function StudentsPage() {
                     <span className="display-md block truncate text-2xl">{s.fullName}</span>
                     <span className="block truncate text-xs text-ink-soft">
                       {s.studentId} · {s.department} · Sem {s.semester} · {pickedKeys(s.picks).length} events
+                      {s.addedBy && <> · added by {s.addedBy}</>}
                     </span>
                   </span>
                   <span className="flex items-center gap-3">

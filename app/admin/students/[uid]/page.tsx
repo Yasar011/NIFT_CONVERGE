@@ -134,7 +134,7 @@ function Editor({ uid, data, saved, onSaved }: { uid: string; data: Detail; save
         </div>
       </div>
 
-      <RegistrationFields data={form} update={update} errors={errors} disabled={!!busy} email={data.registration.email} />
+      <RegistrationFields data={form} update={update} errors={errors} disabled={!!busy} email={data.registration.email} forUid={uid} />
 
       <div className="flex flex-wrap items-center gap-4 border-t-2 border-ink pt-6">
         <Btn tone="blue" busy={busy === "save"} onClick={save}>Save changes</Btn>

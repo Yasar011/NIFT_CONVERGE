@@ -2,7 +2,30 @@
   "rules": {
     ".read": false,
     ".write": false,
-    "entries": { ".indexOn": ["category", "uid", "eventKey"] },
-    "voting": { "sessions": { ".indexOn": ["status", "category"] } }
+    "entries": {
+      ".indexOn": [
+        "category",
+        "uid",
+        "eventKey"
+      ]
+    },
+    "voting": {
+      "sessions": {
+        ".indexOn": [
+          "status",
+          "category"
+        ]
+      }
+    },
+    "registrations": {
+      ".indexOn": [
+        "email"
+      ]
+    },
+    "users": {
+      ".indexOn": [
+        "email"
+      ]
+    }
   }
 }

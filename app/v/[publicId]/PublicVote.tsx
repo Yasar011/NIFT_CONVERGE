@@ -21,7 +21,7 @@ interface Round {
 const POLL = 4000;
 
 export default function PublicVote({ publicId }: { publicId: string }) {
-  const { status, user, me, error: authError } = useAuth();
+  const { status, me, error: authError } = useAuth();
   const [round, setRound] = useState<Round | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -87,7 +87,7 @@ export default function PublicVote({ publicId }: { publicId: string }) {
             publicId={publicId}
             performer={round.live}
             signedIn={signedIn}
-            isMe={round.live.uid === user?.uid}
+            isMe={round.live.uid === me?.user.uid}
             authLoading={status === "loading" || (status === "signed-in" && !me && !authError)}
             authError={authError}
           />

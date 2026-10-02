@@ -1,5 +1,10 @@
 import { verifyIdToken, type IdToken } from "./google";
 import { db, keyOf, cached } from "./rtdb";
+
+/** Site id an admin created for this email before the student first signed in. */
+export async function aliasFor(email: string) {
+  return cached(`alias:${email.toLowerCase()}`, 30_000, () => db.get<string>(`aliases/${keyOf(email)}`));
+}
 import { HttpError } from "./http";
 import type { EventCategory } from "../types";
 
@@ -59,7 +64,7 @@ export async function isBlocked(email: string) {
 
 export async function requireUser(req: Request): Promise<SessionUser> {
   const t = await verify(req);
-  const [{ role, club }, blocked] = await Promise.all([roleFor(t.email!), isBlocked(t.email!)]);
+  const [{ role, club }, blocked, alias] = await Promise.all([roleFor(t.email!), isBlocked(t.email!), aliasFor(t.email!)]);
   if (blocked && role === "student") {
     throw new HttpError(
       403,
@@ -68,7 +73,7 @@ export async function requireUser(req: Request): Promise<SessionUser> {
     );
   }
   return {
-    uid: t.uid,
+    uid: alias ?? t.uid,
     email: t.email!.toLowerCase(),
     name: (t.name as string) || t.email!.split("@")[0],
     picture: t.picture,

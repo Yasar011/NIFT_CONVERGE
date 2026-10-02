@@ -7,6 +7,7 @@ import SelectionJourney from "@/components/SelectionJourney";
 import RuleTag from "@/components/RuleTag";
 import Arches from "@/components/Arches";
 import Marquee from "@/components/Marquee";
+import NoticeBoard from "@/components/NoticeBoard";
 import { CATEGORY_META, CATEGORY_ORDER } from "@/lib/types";
 import { EVENTS, getEventsByCategory } from "@/lib/events";
 import { getSettings } from "@/lib/server/settings";
@@ -106,6 +107,8 @@ export default async function Home() {
       </section>
 
       <Marquee />
+
+      <NoticeBoard />
 
       {/* 5 picks → 3 selections */}
       <section className="border-b-2 border-ink bg-marigold">

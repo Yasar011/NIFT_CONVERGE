@@ -1,3 +1,4 @@
+import { revalidateTag } from "next/cache";
 import { handle, ok, readJson, HttpError } from "@/lib/server/http";
 import { requireAdmin, assertClubAccess } from "@/lib/server/auth";
 import { db } from "@/lib/server/rtdb";
@@ -41,6 +42,7 @@ export const POST = handle(async (req: Request) => {
     at: Date.now(),
   };
   const id = await db.push(`trials/${statId(body.eventKey!)}`, trial);
+  revalidateTag("board", { expire: 0 });
   await audit(admin.email, "trial.add", `${eventLabel(event)}: "${trial.title}" on ${trial.date} ${trial.time} at ${venue}`, event.category);
   return ok({ id });
 });
@@ -55,6 +57,7 @@ export const DELETE = handle(async (req: Request) => {
   if (!t) throw new HttpError(404, "Trial not found.");
   assertClubAccess(admin, t.category);
   await db.remove(path);
+  revalidateTag("board", { expire: 0 });
   await audit(admin.email, "trial.delete", `Cancelled "${t.title}" (${t.date} ${t.time}) for ${eventKey}`, t.category);
   return ok({ ok: true });
 });
