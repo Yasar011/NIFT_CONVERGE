@@ -1,4 +1,7 @@
+import { after } from "next/server";
+import { notify } from "@/lib/server/push";
 import { handle, ok, readJson, HttpError } from "@/lib/server/http";
+import { getEventByKey, eventLabel } from "@/lib/events";
 import { requireAdmin, assertClubAccess } from "@/lib/server/auth";
 import { db } from "@/lib/server/rtdb";
 import { readSel, setEntryStatus } from "@/lib/server/selection";
@@ -52,6 +55,7 @@ export const POST = handle(async (req: Request) => {
       at: now,
     });
     await audit(admin.email, "announce", `Sent "${title}" to ${uids.length} student(s)`, admin.club ?? (clubs.length === 1 ? clubs[0] : null));
+    after(() => notify({ uids }, { title: `📣 ${title}`, body: text, url: "/me", tag: `notice-${now}` }));
     return ok({ results: [...results, ...found.map((f) => ({ id: f.id, ok: true }))], sentTo: uids.length });
   }
 
@@ -61,6 +65,7 @@ export const POST = handle(async (req: Request) => {
   }
   const sel = await readSel();
 
+  const shortlisted: string[] = [];
   // One at a time: selection changes are transactional and order-dependent.
   for (const { id } of found) {
     const current = sel.status?.[id] ?? "registered";
@@ -69,6 +74,7 @@ export const POST = handle(async (req: Request) => {
         if (current === "selected") throw new HttpError(409, "Already selected — change it individually.");
         if (current === "locked") throw new HttpError(409, "Locked (3 selections).");
         await setEntryStatus(id, body.status!);
+        if (body.status === "shortlisted" && current !== "shortlisted") shortlisted.push(id);
         const extra: Record<string, unknown> = { updatedAt: now, updatedBy: admin.email };
         if (body.status === "not_selected") extra.recommendation = null;
         await db.update(`entries/${id}`, extra);
@@ -93,6 +99,13 @@ export const POST = handle(async (req: Request) => {
     }
   }
 
+  for (const id of shortlisted) {
+    const entry = found.find((f) => f.id === id)!.entry;
+    const ev = getEventByKey(entry.eventKey);
+    after(() =>
+      notify({ uids: [entry.uid] }, { title: "⭐ You're shortlisted!", body: `${ev ? eventLabel(ev) : "Your event"} — watch My Converge for the next step.`, url: "/me", tag: `status-${id}` })
+    );
+  }
   const done = results.filter((r) => r.ok).length;
   const what =
     body.action === "status" ? `→ ${STATUS_LABEL[body.status!]}` : body.action === "present" ? (body.present ? "marked present" : "marked absent") : body.recommend ? "recommended" : "recommendation withdrawn";

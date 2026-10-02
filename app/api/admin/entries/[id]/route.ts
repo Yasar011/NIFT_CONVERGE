@@ -1,3 +1,5 @@
+import { after } from "next/server";
+import { notify } from "@/lib/server/push";
 import { handle, ok, readJson, HttpError } from "@/lib/server/http";
 import { requireAdmin, assertClubAccess } from "@/lib/server/auth";
 import { db } from "@/lib/server/rtdb";
@@ -59,6 +61,13 @@ export const PATCH = handle(async (req: Request, ctx: Ctx) => {
       checkFinalPassword(body.finalPassword);
     }
     changed = await setEntryStatus(id, body.status);
+    const evName = getEventByKey(entry.eventKey) ? eventLabel(getEventByKey(entry.eventKey)!) : "your event";
+    if (changed.includes(id) && body.status === "shortlisted") {
+      after(() => notify({ uids: [entry.uid] }, { title: "⭐ You're shortlisted!", body: `${evName} — watch My Converge for the next step.`, url: "/me", tag: `status-${id}` }));
+    }
+    if (changed.includes(id) && body.status === "selected") {
+      after(() => notify({ uids: [entry.uid] }, { title: "🎉 You're selected for Converge!", body: `${evName} — congratulations from NIFT Jodhpur.`, url: "/me", tag: `status-${id}` }));
+    }
     if (body.status === "selected") Object.assign(patch, { finalBy: admin.email, finalAt: now });
     // A final decision closes any open recommendation.
     if (body.status === "selected" || body.status === "not_selected") patch.recommendation = null;

@@ -18,7 +18,7 @@ export default function TrialsPage() {
   const { data, error, loading, reload } = useApi<{ trials: Trial[] }>("/api/admin/trials");
   const isMain = me?.user.role === "main_admin";
   const events = PICKABLE_EVENTS.filter((e) => isMain || e.category === me?.user.club);
-  const [form, setForm] = useState({ eventKey: "", title: "", date: today(), time: "16:00", venue: "", notes: "" });
+  const [form, setForm] = useState({ eventKey: "", title: "", date: today(), time: "16:00", venue: "", notes: "", notifyEveryone: false });
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -29,7 +29,7 @@ export default function TrialsPage() {
     try {
       await api("/api/admin/trials", { body: form });
       setForm((f) => ({ ...f, title: "", notes: "" }));
-      setMsg({ ok: true, text: "Trial added. Students in that event now see it on My Converge." });
+      setMsg({ ok: true, text: form.notifyEveryone ? "Trial added — notification sent to everyone with notifications on." : "Trial added — the event\u2019s team got a phone notification and sees it on My Converge." });
       reload();
     } catch (err) {
       setMsg({ ok: false, text: err instanceof Error ? err.message : "Couldn't add." });
@@ -89,8 +89,12 @@ export default function TrialsPage() {
             <input className={inputCls} placeholder="e.g. Bring your own music" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
           </label>
         </div>
+        <label className="mt-4 flex cursor-pointer items-center gap-2 text-sm">
+          <input type="checkbox" className="h-4 w-4 accent-[#15120e]" checked={form.notifyEveryone} onChange={(e) => setForm({ ...form, notifyEveryone: e.target.checked })} />
+          Notify <strong>everyone</strong> (not just this event&apos;s team) — e.g. for open auditions
+        </label>
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <Btn tone="ink" type="submit" busy={busy === "add"}>Add trial</Btn>
+          <Btn tone="ink" type="submit" busy={busy === "add"}>Add trial & notify</Btn>
           {msg && <p className={clsx("text-sm font-semibold", msg.ok ? "text-peacock" : "text-sindoor")}>{msg.text}</p>}
         </div>
       </form>

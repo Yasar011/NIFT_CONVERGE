@@ -7,6 +7,7 @@ import clsx from "clsx";
 import { useAuth } from "@/components/auth/AuthProvider";
 import SignInPanel from "@/components/auth/SignInPanel";
 import QrPass from "@/components/QrPass";
+import NotifyCard from "@/components/NotifyCard";
 import StatusBadge from "@/components/StatusBadge";
 import { getEventByKey, eventLabel } from "@/lib/events";
 import { CATEGORY_META } from "@/lib/types";
@@ -116,7 +117,8 @@ export default function MyConverge() {
       )}
 
       <div className="mx-auto grid max-w-[1400px] gap-12 px-4 py-12 sm:px-8 lg:grid-cols-12 lg:py-16">
-        <aside className="lg:col-span-4">
+        <aside className="space-y-6 lg:col-span-4">
+          <NotifyCard />
           <div className="border-2 border-ink bg-paper p-5 lg:sticky lg:top-24">
             <p className="label">Your QR pass</p>
             <div className="mt-4 flex justify-center border-2 border-ink bg-white p-3">

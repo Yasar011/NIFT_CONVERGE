@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/server/auth";
 import { db } from "@/lib/server/rtdb";
 import { readSel, parseEntryId, statId } from "@/lib/server/selection";
 import { readSettings } from "@/lib/server/settings";
+import { subscriberCount } from "@/lib/server/push";
 import { isRegistrationOpen } from "@/lib/settings-shared";
 import { PICKABLE_EVENTS, eventKey, capacityOf } from "@/lib/events";
 import { CAMPUS_CAP } from "@/lib/registration-schema";
@@ -47,6 +48,7 @@ export const GET = handle(async (req: Request) => {
     registrationOpen: isRegistrationOpen(settings),
     settings,
     pendingApprovals: admin.role === "main_admin" ? pendingApprovals : 0,
+    notifySubscribers: await subscriberCount().catch(() => 0),
     events,
   });
 });

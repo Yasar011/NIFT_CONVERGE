@@ -1,4 +1,6 @@
 import { revalidateTag } from "next/cache";
+import { after } from "next/server";
+import { notify } from "@/lib/server/push";
 import { handle, ok, readJson, HttpError } from "@/lib/server/http";
 import { requireAdmin, assertClubAccess } from "@/lib/server/auth";
 import { db } from "@/lib/server/rtdb";
@@ -58,6 +60,10 @@ export const POST = handle(async (req: Request) => {
       },
     });
     live = true;
+    if (session.status === "scheduled" && session.publicId) {
+      const link = `/v/${session.publicId}`;
+      after(() => notify({ everyone: true }, { title: `🔴 Voting is live: ${session.title}`, body: "Tap to watch and vote — one vote per performer.", url: link, tag: `vote-${session.id}` }));
+    }
     revalidateTag("live", { expire: 0 });
   }
 

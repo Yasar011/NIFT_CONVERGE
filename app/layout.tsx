@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Archivo, Instrument_Serif, Tiro_Devanagari_Hindi } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
@@ -29,6 +29,12 @@ export const metadata: Metadata = {
   title: "NIFT Jodhpur × Converge 2026 | Rang Regalia",
   description:
     "NIFT Jodhpur's official student registration and selection portal for CONVERGE 2026 — explore events, understand the selection process, and register your interest.",
+  appleWebApp: { capable: true, title: "Converge ’26", statusBarStyle: "default" },
+  icons: { apple: "/pwa-icon/apple" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#2a45a8",
 };
 
 export default function RootLayout({

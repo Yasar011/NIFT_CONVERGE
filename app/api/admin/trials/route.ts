@@ -1,4 +1,6 @@
 import { revalidateTag } from "next/cache";
+import { after } from "next/server";
+import { notify } from "@/lib/server/push";
 import { handle, ok, readJson, HttpError } from "@/lib/server/http";
 import { requireAdmin, assertClubAccess } from "@/lib/server/auth";
 import { db } from "@/lib/server/rtdb";
@@ -21,7 +23,7 @@ export const GET = handle(async (req: Request) => {
 
 export const POST = handle(async (req: Request) => {
   const admin = await requireAdmin(req);
-  const body = await readJson<Partial<Trial>>(req);
+  const body = await readJson<Partial<Trial> & { notifyEveryone?: boolean }>(req);
   const event = getEventByKey(body.eventKey || "");
   if (!event || event.nonCompetitive) throw new HttpError(400, "Choose an event.");
   assertClubAccess(admin, event.category);
@@ -43,6 +45,16 @@ export const POST = handle(async (req: Request) => {
   };
   const id = await db.push(`trials/${statId(body.eventKey!)}`, trial);
   revalidateTag("board", { expire: 0 });
+  const when = new Date(`${trial.date}T${trial.time}`).toLocaleString("en-IN", {
+    weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "UTC",
+  });
+  const message = {
+    title: `🗓 ${eventLabel(event)}: ${trial.title}`,
+    body: `${when} · ${venue}${trial.notes ? `\n${trial.notes}` : ""}`,
+    url: body.notifyEveryone ? "/" : "/me",
+    tag: `trial-${id}`,
+  };
+  after(() => notify(body.notifyEveryone ? { everyone: true } : { event: trial.eventKey }, message));
   await audit(admin.email, "trial.add", `${eventLabel(event)}: "${trial.title}" on ${trial.date} ${trial.time} at ${venue}`, event.category);
   return ok({ id });
 });

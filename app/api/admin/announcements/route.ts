@@ -1,4 +1,6 @@
 import { revalidateTag } from "next/cache";
+import { after } from "next/server";
+import { notify } from "@/lib/server/push";
 import { handle, ok, readJson, HttpError } from "@/lib/server/http";
 import { requireAdmin, type SessionUser } from "@/lib/server/auth";
 import { db } from "@/lib/server/rtdb";
@@ -46,6 +48,9 @@ export const POST = handle(async (req: Request) => {
 
   const record: Omit<Announcement, "id"> = { title, body: text, audience, createdBy: admin.email, at: Date.now() };
   const id = await db.push("announcements", record);
+  const target =
+    audience === "all" ? { everyone: true as const } : audience.startsWith("club:") ? { club: audience.slice(5) } : { event: audience };
+  after(() => notify(target, { title: `📣 ${title}`, body: text, url: audience === "all" ? "/" : "/me", tag: `notice-${id}` }));
   revalidateTag("board", { expire: 0 });
   await audit(admin.email, "announce", `Posted "${title}" to ${audience}`, clubOf(audience));
   return ok({ id });

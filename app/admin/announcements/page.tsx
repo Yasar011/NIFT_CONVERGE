@@ -33,7 +33,7 @@ export default function AnnouncementsPage() {
     try {
       await api("/api/admin/announcements", { body: form });
       setForm((f) => ({ ...f, title: "", body: "" }));
-      setMsg({ ok: true, text: "Posted. Students see it on My Converge." });
+      setMsg({ ok: true, text: "Posted — sent as a phone notification and shown on My Converge." });
       reload();
     } catch (err) {
       setMsg({ ok: false, text: err instanceof Error ? err.message : "Couldn't post." });
@@ -84,7 +84,7 @@ export default function AnnouncementsPage() {
           </label>
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <Btn tone="ink" type="submit" busy={busy === "post"}>Post</Btn>
+          <Btn tone="ink" type="submit" busy={busy === "post"}>Post & notify</Btn>
           {msg && <p className={clsx("text-sm font-semibold", msg.ok ? "text-peacock" : "text-sindoor")}>{msg.text}</p>}
         </div>
       </form>

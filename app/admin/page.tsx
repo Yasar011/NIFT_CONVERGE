@@ -20,6 +20,7 @@ interface Overview {
   registrationOpen: boolean;
   settings: AppSettings;
   pendingApprovals: number;
+  notifySubscribers: number;
   events: { key: string; category: EventCategory; registered: number; selected: number; capacity: number }[];
 }
 
@@ -69,7 +70,7 @@ function OverviewInner() {
       )}
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Stat label="Students registered" value={data.registrations} />
+        <Stat label="Students registered" value={data.registrations} sub={`${data.notifySubscribers} with phone notifications on`} />
         <Stat
           label="Selected for Converge"
           value={
