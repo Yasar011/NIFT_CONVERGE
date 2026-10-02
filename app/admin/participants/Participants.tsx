@@ -354,6 +354,14 @@ function Row({
   async function setStatus(next: EntryStatus) {
     const isFinal = next === "selected" || entry.status === "selected";
     if (!isFinal) return patch({ status: next }, "status");
+    // A final decision always gets an explicit confirm, even with the password remembered —
+    // so a mis-tap on the wrong row can't silently select (or drop) someone.
+    const evName = ev ? eventLabel(ev) : entry.eventKey;
+    const question =
+      next === "selected"
+        ? `FINAL SELECTION\n\nSelect ${s.name} for ${evName}?`
+        : `Remove ${s.name} from the final list for ${evName}?`;
+    if (!confirm(question)) return;
     const finalPassword = await ask();
     if (!finalPassword) return;
     return patch({ status: next, finalPassword }, "status");
