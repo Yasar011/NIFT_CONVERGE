@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Check, Download, Film, Loader2, Lock, Megaphone, Phone, Plus, Printer, Search, Star, StickyNote, Trash2, UserPlus, X } from "lucide-react";
+import { BedDouble, Check, Download, Film, Loader2, Lock, Megaphone, Phone, Plus, Printer, Search, Star, StickyNote, Trash2, UserPlus, X } from "lucide-react";
 import clsx from "clsx";
 import { useAuth, ApiError } from "@/components/auth/AuthProvider";
 import { Btn, ErrorNote, Loading, PageTitle, inputCls, useApi, useDownload } from "@/components/admin/kit";
@@ -58,6 +58,13 @@ function ParticipantsInner() {
       .sort((a, b) => a.eventKey.localeCompare(b.eventKey) || a.student.name.localeCompare(b.student.name));
   }, [data, statusFilter, q]);
 
+  // Downloads follow whatever is filtered on screen.
+  const exportQuery = new URLSearchParams({
+    ...(isMain && category ? { category } : {}),
+    ...(event ? { event } : {}),
+    ...(statusFilter !== "all" ? { status: statusFilter } : {}),
+    ...(q.trim() ? { q: q.trim() } : {}),
+  }).toString();
   const selectedEvent = event ? getEventByKey(event) : null;
   const selectedCount = (data?.entries ?? []).filter((e) => e.status === "selected").length;
 
@@ -67,8 +74,11 @@ function ParticipantsInner() {
         <Btn tone="ink" onClick={() => setAdding((v) => !v)} aria-expanded={adding}>
           <UserPlus size={14} /> Add member
         </Btn>
-        <Btn onClick={() => download(`/api/admin/export${isMain && category ? `?category=${category}` : ""}`, `converge26-${category || "all"}.csv`)}>
+        <Btn onClick={() => download(`/api/admin/export?${exportQuery}`, "converge26-participants.csv")} title="Follows the filters below">
           <Download size={14} /> Export CSV
+        </Btn>
+        <Btn onClick={() => download(`/api/admin/export?${exportQuery}&format=hostel`, "converge26-hostel-list.csv")} title="One row per student, sorted by hostel and room — follows the filters below">
+          <BedDouble size={14} /> Hostel list
         </Btn>
         <Link
           href={`/admin/print?type=attendance${event ? `&event=${encodeURIComponent(event)}` : ""}`}
