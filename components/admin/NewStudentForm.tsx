@@ -7,9 +7,10 @@ import { useAuth, ApiError } from "../auth/AuthProvider";
 import { Btn, inputCls } from "./kit";
 import { PICKABLE_EVENTS, eventKey, eventLabel, genderRequirement } from "@/lib/events";
 import { CATEGORY_META, CATEGORY_ORDER } from "@/lib/types";
-import { DEPARTMENTS, GENDERS, MAX_EVENTS, RESIDENCES, SEMESTERS } from "@/lib/registration-schema";
+import { DEPARTMENTS, GENDERS, MAX_EVENTS, SEMESTERS } from "@/lib/registration-schema";
+import StayFields from "../StayFields";
 
-const EMPTY = { email: "", fullName: "", studentId: "", department: "", semester: "", gender: "", phone: "", residence: "" };
+const EMPTY = { email: "", fullName: "", studentId: "", department: "", semester: "", gender: "", phone: "", residence: "", hostel: "", room: "" };
 
 /**
  * Admin adds a student by NIFT email (no self-registration needed).
@@ -78,12 +79,15 @@ export default function NewStudentForm({ fixedEvent, onDone }: { fixedEvent?: st
         {field("department", "Department", sel("department", DEPARTMENTS))}
         {field("semester", "Semester", sel("semester", SEMESTERS))}
         {field("phone", "Mobile (optional)", <input type="tel" inputMode="numeric" className={clsx(inputCls, errors.phone && "border-sindoor")} placeholder="10 digits" value={form.phone} onChange={(e) => set("phone", e.target.value)} />)}
-        {field("residence", "Hostel / day (optional)", (
-          <select className={inputCls} value={form.residence} onChange={(e) => set("residence", e.target.value)}>
-            <option value="">—</option>
-            {RESIDENCES.map((r) => <option key={r}>{r}</option>)}
-          </select>
-        ))}
+        <StayFields
+          value={{ residence: form.residence, hostel: form.hostel, room: form.room }}
+          gender={form.gender}
+          onChange={(s) => setForm((f) => ({ ...f, residence: s.residence, hostel: s.hostel ?? "", room: s.room ?? "" }))}
+          errors={errors}
+          controlClass={inputCls}
+          labelClass="label mb-1.5 block text-ink-soft"
+          optional
+        />
       </div>
 
       {!fixedEvent && (

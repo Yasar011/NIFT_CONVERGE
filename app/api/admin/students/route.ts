@@ -12,6 +12,7 @@ import {
   picksFrom,
   validateRegistration,
   EMPTY_REGISTRATION,
+  normaliseStay,
 } from "@/lib/registration-schema";
 import type { RegistrationRecord } from "@/lib/api-types";
 
@@ -33,6 +34,8 @@ interface ManualStudent {
   gender: string;
   phone?: string;
   residence?: string;
+  hostel?: string;
+  room?: string;
   events: string[];
 }
 
@@ -82,6 +85,8 @@ export const POST = handle(async (req: Request) => {
     gender: body.gender,
     phone: body.phone || "",
     residence: body.residence || "",
+    hostel: body.hostel || "",
+    room: body.room || "",
     photo: { url: initialsPhoto(body.fullName || "?"), publicId: "", cloud: "" },
     picks: picksFrom(events),
   };
@@ -105,7 +110,7 @@ export const POST = handle(async (req: Request) => {
     semester: input.semester,
     gender: input.gender,
     phone: input.phone.replace(/\D/g, "").slice(-10),
-    residence: input.residence,
+    ...normaliseStay(input),
     photo: input.photo,
     picks: picksFrom([]),
     createdAt: Date.now(),

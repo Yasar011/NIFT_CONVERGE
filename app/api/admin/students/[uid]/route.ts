@@ -5,6 +5,7 @@ import { assertOwnMedia } from "@/lib/server/cloudinary";
 import { entriesFor, queryEntries, snapshotOf } from "@/lib/server/entries";
 import { addEntries, removeEntries, entryId } from "@/lib/server/selection";
 import {
+  normaliseStay,
   validateRegistration,
   normaliseStudentId,
   pickedKeys,
@@ -53,7 +54,7 @@ export const PATCH = handle(async (req: Request, ctx: Ctx) => {
     semester: input.semester,
     gender: input.gender,
     phone: input.phone.replace(/\D/g, "").slice(-10),
-    residence: input.residence,
+    ...normaliseStay(input),
     photo,
     picks: Object.fromEntries(PICK_SLOTS.map((s) => [s, input.picks[s] || ""])) as RegistrationRecord["picks"],
     updatedAt: Date.now(),

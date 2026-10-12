@@ -2,19 +2,22 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ArrowUpRight, CalendarDays, Check, Loader2, Megaphone, MapPin, RefreshCw } from "lucide-react";
+import { useState } from "react";
+import { ArrowUpRight, CalendarDays, Check, Loader2, Megaphone, MapPin, Pencil, RefreshCw } from "lucide-react";
 import clsx from "clsx";
 import { useAuth } from "@/components/auth/AuthProvider";
 import SignInPanel from "@/components/auth/SignInPanel";
 import QrPass from "@/components/QrPass";
 import NotifyCard from "@/components/NotifyCard";
+import ProfileEditor from "@/components/ProfileEditor";
 import StatusBadge from "@/components/StatusBadge";
 import { getEventByKey, eventLabel } from "@/lib/events";
 import { CATEGORY_META } from "@/lib/types";
-import { MAX_SELECTIONS, SLOT_LABEL, PICK_SLOTS, cldTransform } from "@/lib/registration-schema";
+import { MAX_SELECTIONS, SLOT_LABEL, PICK_SLOTS, cldTransform, stayLabel } from "@/lib/registration-schema";
 
 export default function MyConverge() {
   const { status, me, refresh, error } = useAuth();
+  const [editing, setEditing] = useState(false);
   const welcome = useSearchParams().get("welcome");
 
   if (status === "signed-in" && !me && error) {
@@ -90,7 +93,15 @@ export default function MyConverge() {
               <h1 className="display mt-2 text-5xl sm:text-7xl">{reg.fullName}</h1>
               <p className="mt-2 text-sm opacity-85">
                 {reg.studentId} · {reg.department} · Semester {reg.semester}
+                {stayLabel(reg) && <> · {stayLabel(reg)}</>}
               </p>
+              <button
+                onClick={() => setEditing((v) => !v)}
+                aria-expanded={editing}
+                className="mt-3 inline-flex cursor-pointer items-center gap-1.5 border-2 border-paper px-3 py-1.5 text-xs font-bold uppercase tracking-wide hover:bg-paper hover:text-blue"
+              >
+                <Pencil size={12} /> Edit profile
+              </button>
             </div>
           </div>
           <div className="lg:col-span-4">
@@ -107,6 +118,22 @@ export default function MyConverge() {
           </div>
         </div>
       </header>
+
+      {(editing || !reg.residence || (reg.residence === "Hostel" && (!reg.hostel || !reg.room))) && (
+        <div className="mx-auto max-w-[1400px] px-4 pt-8 sm:px-8">
+          {editing ? (
+            <ProfileEditor reg={reg} onClose={() => setEditing(false)} />
+          ) : (
+            <button
+              onClick={() => setEditing(true)}
+              className="btn-print flex w-full cursor-pointer items-center justify-between gap-3 border-2 border-ink bg-marigold px-4 py-3 text-left font-bold"
+            >
+              <span>Add your hostel and room number (or Day Scholar) so coordinators can reach you.</span>
+              <span className="text-sm uppercase">Update →</span>
+            </button>
+          )}
+        </div>
+      )}
 
       {welcome && (
         <div className="border-b-2 border-ink bg-peacock text-paper">

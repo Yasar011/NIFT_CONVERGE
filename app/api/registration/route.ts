@@ -11,6 +11,7 @@ import { entriesFor } from "@/lib/server/entries";
 import { addEntries } from "@/lib/server/selection";
 import {
   validateRegistration,
+  normaliseStay,
   normaliseStudentId,
   PICK_SLOTS,
   type RegistrationInput,
@@ -49,7 +50,7 @@ export const POST = handle(async (req: Request) => {
     semester: input.semester,
     gender: input.gender,
     phone: input.phone.replace(/\D/g, "").slice(-10),
-    residence: input.residence,
+    ...normaliseStay(input),
     photo,
     picks: Object.fromEntries(PICK_SLOTS.map((s) => [s, input.picks[s] || ""])) as RegistrationRecord["picks"],
     createdAt: Date.now(),

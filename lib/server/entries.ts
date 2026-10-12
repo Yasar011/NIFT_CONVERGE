@@ -15,6 +15,8 @@ export function snapshotOf(reg: RegistrationRecord): StudentSnapshot {
     email: reg.email,
     phone: reg.phone,
     residence: reg.residence,
+    hostel: reg.hostel ?? "",
+    room: reg.room ?? "",
     photoUrl: reg.photo?.url ?? "",
   };
 }

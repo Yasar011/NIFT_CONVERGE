@@ -8,6 +8,7 @@ import clsx from "clsx";
 import { useAuth, ApiError } from "./auth/AuthProvider";
 import SignInPanel from "./auth/SignInPanel";
 import PhotoUpload from "./PhotoUpload";
+import StayFields from "./StayFields";
 import { PICKABLE_EVENTS, eventKey, eventLabel, genderRequirement } from "@/lib/events";
 import { CATEGORY_META, CATEGORY_ORDER } from "@/lib/types";
 import {
@@ -15,7 +16,6 @@ import {
   DEPARTMENTS,
   SEMESTERS,
   GENDERS,
-  RESIDENCES,
   PICK_SLOTS,
   REQUIRED_SLOTS,
   SLOT_LABEL,
@@ -141,12 +141,19 @@ export function RegistrationFields({
           <Field id="phone" label="Mobile number" error={errors.phone}>
             <input {...a11y("phone")} type="tel" inputMode="numeric" autoComplete="tel" className={control} value={data.phone} onChange={(e) => update("phone", e.target.value)} placeholder="10 digits" />
           </Field>
-          <Field id="residence" label="Hostel / day scholar" error={errors.residence}>
-            <select {...a11y("residence")} className={control} value={data.residence} onChange={(e) => update("residence", e.target.value)}>
-              <option value="">Select</option>
-              {RESIDENCES.map((r) => <option key={r}>{r}</option>)}
-            </select>
-          </Field>
+          <StayFields
+            value={{ residence: data.residence, hostel: data.hostel, room: data.room }}
+            gender={data.gender}
+            onChange={(s) => {
+              update("residence", s.residence);
+              update("hostel", s.hostel ?? "");
+              update("room", s.room ?? "");
+            }}
+            errors={errors}
+            disabled={disabled}
+            controlClass={control}
+            optional={!!forUid}
+          />
           {email && (
             <Field id="email" label="NIFT email" className="sm:col-span-2">
               <input id="email" className={control} value={email} readOnly disabled />

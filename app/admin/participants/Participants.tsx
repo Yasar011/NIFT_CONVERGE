@@ -13,7 +13,7 @@ import StatusBadge from "@/components/StatusBadge";
 import { uploadMedia } from "@/lib/client/upload";
 import { PICKABLE_EVENTS, eventKey, eventLabel, getEventByKey, capacityOf, genderRequirement } from "@/lib/events";
 import { CATEGORY_META, CATEGORY_ORDER, type EventCategory } from "@/lib/types";
-import { MAX_EVENTS, SETTABLE_STATUSES, SLOT_LABEL, STATUS_LABEL, cldTransform, type EntryStatus } from "@/lib/registration-schema";
+import { MAX_EVENTS, SETTABLE_STATUSES, SLOT_LABEL, STATUS_LABEL, cldTransform, stayLabel, type EntryStatus } from "@/lib/registration-schema";
 import type { EntryView } from "@/lib/api-types";
 
 export default function Participants() {
@@ -410,6 +410,7 @@ function Row({
             <p className="display-md truncate text-2xl">{s.name}</p>
             <p className="text-xs text-ink-soft">
               {s.studentId} · {s.department} · Sem {s.semester} · {s.gender}
+              {stayLabel(s) && <> · {stayLabel(s)}</>}
             </p>
             {showEvent && (
               <p className="mt-1 text-sm font-semibold">

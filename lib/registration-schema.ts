@@ -6,6 +6,65 @@ export const DEPARTMENTS = ["BFT", "MFM", "AD", "FC", "TD", "FD"] as const;
 export const SEMESTERS = ["1", "3", "5", "7"] as const;
 export const GENDERS = ["Male", "Female", "Prefer not to say"] as const;
 export const RESIDENCES = ["Hostel", "Day Scholar"] as const;
+export const GIRLS_HOSTELS = ["G1", "G2", "SBV", "RPV"] as const;
+export const BOYS_HOSTELS = ["Atal"] as const;
+export const HOSTELS: readonly string[] = [...GIRLS_HOSTELS, ...BOYS_HOSTELS];
+export const DAY_SCHOLAR = "Day Scholar";
+
+/** Hostels a student can live in, by gender (Day Scholar is open to everyone). */
+export function hostelsFor(gender: string): readonly string[] {
+  if (gender === "Male") return BOYS_HOSTELS;
+  if (gender === "Female") return GIRLS_HOSTELS;
+  return HOSTELS;
+}
+
+export interface Stay {
+  residence: string;
+  hostel?: string;
+  room?: string;
+}
+
+/** "G1 · Room 204", "Atal · Room 12", "Day Scholar" — for lists, exports and sheets. */
+export function stayLabel(s: Partial<Stay> | null | undefined) {
+  if (!s?.residence) return "";
+  if (s.residence === DAY_SCHOLAR) return DAY_SCHOLAR;
+  const parts = [s.hostel || "Hostel", s.room ? `Room ${s.room}` : ""].filter(Boolean);
+  return parts.join(" · ");
+}
+
+/** Cleans what's stored: a day scholar has no hostel or room. */
+export function normaliseStay(s: Partial<Stay>): Stay {
+  if (s.residence === DAY_SCHOLAR) return { residence: DAY_SCHOLAR, hostel: "", room: "" };
+  if (s.residence === "Hostel") return { residence: "Hostel", hostel: s.hostel || "", room: (s.room || "").trim().toUpperCase() };
+  return { residence: "", hostel: "", room: "" };
+}
+
+/** Validates where a student stays. Admins may leave it blank; students may not. */
+export function validateStay(s: Partial<Stay>, gender: string, admin = false): Partial<Record<"residence" | "hostel" | "room", string>> {
+  const errors: Partial<Record<"residence" | "hostel" | "room", string>> = {};
+  if (!s.residence) {
+    if (!admin) errors.residence = "Choose your hostel, or Day Scholar.";
+    return errors;
+  }
+  if (!RESIDENCES.includes(s.residence as never)) {
+    errors.residence = "Choose your hostel, or Day Scholar.";
+    return errors;
+  }
+  if (s.residence === "Hostel") {
+    if (!s.hostel) {
+      if (!admin) errors.residence = "Choose your hostel.";
+    } else if (!hostelsFor(gender).includes(s.hostel)) {
+      errors.residence = gender === "Male" ? "Boys stay in Atal hostel." : gender === "Female" ? "Choose one of the girls' hostels." : "Choose a valid hostel.";
+    }
+    const room = (s.room || "").trim();
+    if (!room) {
+      if (!admin) errors.room = "Enter your room number.";
+    } else if (!/^[A-Za-z0-9/-]{1,10}$/.test(room)) {
+      errors.room = "Room number: letters, numbers, - or / only.";
+    }
+  }
+  return errors;
+}
 
 export const PICK_SLOTS = ["e1", "e2", "e3", "e4", "e5"] as const;
 export type PickSlot = (typeof PICK_SLOTS)[number];
@@ -38,6 +97,8 @@ export interface RegistrationInput {
   gender: string;
   phone: string;
   residence: string;
+  hostel?: string;
+  room?: string;
   photo: MediaRef | null;
   picks: Record<PickSlot, string>;
   rulesAcknowledged: boolean;
@@ -52,6 +113,8 @@ export const EMPTY_REGISTRATION: RegistrationInput = {
   gender: "",
   phone: "",
   residence: "",
+  hostel: "",
+  room: "",
   photo: null,
   picks: { e1: "", e2: "", e3: "", e4: "", e5: "" },
   rulesAcknowledged: false,
@@ -84,8 +147,7 @@ export function validateRegistration(data: RegistrationInput, opts: { admin?: bo
   const phoneOptional = opts.admin && !digits;
   if (!phoneOptional && !(digits.length === 10 || (digits.length === 12 && digits.startsWith("91"))))
     errors.phone = "Enter a 10-digit mobile number.";
-  if (!(opts.admin && !data.residence) && !RESIDENCES.includes(data.residence as never))
-    errors.residence = "Choose Hostel or Day Scholar.";
+  Object.assign(errors, validateStay(data, data.gender, opts.admin));
   if (!data.photo?.url) errors.photo = "Upload a clear photo of your face.";
 
   const picks = data.picks ?? EMPTY_REGISTRATION.picks;

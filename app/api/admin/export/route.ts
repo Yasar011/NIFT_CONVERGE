@@ -2,7 +2,7 @@ import { handle } from "@/lib/server/http";
 import { requireAdmin } from "@/lib/server/auth";
 import { queryEntries } from "@/lib/server/entries";
 import { getEventByKey, eventLabel } from "@/lib/events";
-import { SLOT_LABEL, STATUS_LABEL } from "@/lib/registration-schema";
+import { SLOT_LABEL, STATUS_LABEL, stayLabel } from "@/lib/registration-schema";
 import { CATEGORY_META } from "@/lib/types";
 
 const cell = (v: unknown) => {
@@ -15,7 +15,7 @@ export const GET = handle(async (req: Request) => {
   const category = admin.role === "club_admin" ? admin.club! : new URL(req.url).searchParams.get("category");
   const { entries } = category ? await queryEntries("category", category) : await queryEntries(null);
 
-  const head = ["Club", "Event", "Pick", "Status", "Present", "Name", "Student ID", "Dept", "Sem", "Gender", "Email", "Phone", "Hostel/Day", "Photo"];
+  const head = ["Club", "Event", "Pick", "Status", "Present", "Name", "Student ID", "Dept", "Sem", "Gender", "Email", "Phone", "Hostel / Room", "Photo"];
   const rows = entries
     .sort((a, b) => a.eventKey.localeCompare(b.eventKey) || a.student.name.localeCompare(b.student.name))
     .map((e) => {
@@ -33,7 +33,7 @@ export const GET = handle(async (req: Request) => {
         e.student.gender,
         e.student.email,
         e.student.phone,
-        e.student.residence,
+        stayLabel(e.student),
         e.student.photoUrl,
       ];
     });

@@ -29,6 +29,8 @@ export interface StudentSnapshot {
   email: string;
   phone: string;
   residence: string;
+  hostel?: string;
+  room?: string;
   photoUrl: string;
 }
 
