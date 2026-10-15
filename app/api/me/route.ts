@@ -4,6 +4,7 @@ import { db } from "@/lib/server/rtdb";
 import { queryEntries } from "@/lib/server/entries";
 import { readSettings } from "@/lib/server/settings";
 import { isRegistrationOpen } from "@/lib/settings-shared";
+import { getDeadlines, fmtDeadline } from "@/lib/server/deadlines";
 import { assertOwnMedia } from "@/lib/server/cloudinary";
 import { audit } from "@/lib/server/audit";
 import { normaliseStay, validateStay, type MediaRef } from "@/lib/registration-schema";
@@ -11,12 +12,13 @@ import type { Announcement, MeResponse, RegistrationRecord, Trial } from "@/lib/
 
 export const GET = handle(async (req: Request) => {
   const user = await requireUser(req);
-  const [registration, { entries, sel }, settings, allNotices, allTrials] = await Promise.all([
+  const [registration, { entries, sel }, settings, allNotices, allTrials, deadlines] = await Promise.all([
     db.get<RegistrationRecord>(`registrations/${user.uid}`),
     queryEntries("uid", user.uid),
     readSettings(),
     db.get<Record<string, Omit<Announcement, "id">>>("announcements"),
     db.get<Record<string, Record<string, Omit<Trial, "id">>>>("trials"),
+    getDeadlines(),
     touchUser(user),
   ]);
 
@@ -49,6 +51,9 @@ export const GET = handle(async (req: Request) => {
     registrationOpen: isRegistrationOpen(settings),
     announcements,
     trials,
+    closedEvents: Object.fromEntries(
+      Object.entries(deadlines).filter(([, d]) => Date.now() >= d.at).map(([k, d]) => [k, fmtDeadline(d)])
+    ),
   };
   return ok(body);
 });

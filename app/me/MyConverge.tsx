@@ -3,21 +3,23 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { ArrowUpRight, CalendarDays, Check, Loader2, Megaphone, MapPin, Pencil, RefreshCw } from "lucide-react";
+import { ArrowUpRight, CalendarDays, Check, Loader2, Megaphone, MapPin, Pencil, Plus, RefreshCw } from "lucide-react";
 import clsx from "clsx";
 import { useAuth } from "@/components/auth/AuthProvider";
 import SignInPanel from "@/components/auth/SignInPanel";
 import QrPass from "@/components/QrPass";
 import NotifyCard from "@/components/NotifyCard";
 import ProfileEditor from "@/components/ProfileEditor";
+import EventSlotEditor from "@/components/EventSlotEditor";
 import StatusBadge from "@/components/StatusBadge";
 import { getEventByKey, eventLabel } from "@/lib/events";
 import { CATEGORY_META } from "@/lib/types";
-import { MAX_SELECTIONS, SLOT_LABEL, PICK_SLOTS, cldTransform, stayLabel } from "@/lib/registration-schema";
+import { MAX_SELECTIONS, SLOT_LABEL, PICK_SLOTS, REQUIRED_SLOTS, cldTransform, stayLabel, type PickSlot } from "@/lib/registration-schema";
 
 export default function MyConverge() {
   const { status, me, refresh, error } = useAuth();
   const [editing, setEditing] = useState(false);
+  const [slotEdit, setSlotEdit] = useState<PickSlot | null>(null);
   const welcome = useSearchParams().get("welcome");
 
   if (status === "signed-in" && !me && error) {
@@ -76,6 +78,15 @@ export default function MyConverge() {
   const order = (slot: string) => PICK_SLOTS.indexOf(slot as never);
   const entries = [...me.entries].sort((a, b) => order(a.slot) - order(b.slot));
   const selected = me.selectedCount;
+  const closed = me.closedEvents ?? {};
+  const taken = entries.map((e) => e.eventKey);
+  const emptySlots = PICK_SLOTS.filter((s) => !reg.picks?.[s]);
+  // Students may change Event 4–5 (and fill any empty slot) until the club has looked at it.
+  const canChange = (e: (typeof entries)[number]) =>
+    me.registrationOpen && !REQUIRED_SLOTS.includes(e.slot) && (e.status === "registered" || e.status === "locked") && !closed[e.eventKey];
+  const slotEditor = (slot: PickSlot, current: string) => (
+    <EventSlotEditor key={slot} slot={slot} current={current} gender={reg.gender} taken={taken} closed={closed} onClose={() => setSlotEdit(null)} />
+  );
 
   return (
     <>
@@ -202,8 +213,16 @@ export default function MyConverge() {
                       </p>
                     )}
                   </div>
-                  <StatusBadge status={e.status} />
+                  <div className="flex flex-col items-end gap-2">
+                    <StatusBadge status={e.status} />
+                    {canChange(e) && slotEdit !== e.slot && (
+                      <button onClick={() => setSlotEdit(e.slot)} className="cursor-pointer text-xs font-bold uppercase tracking-wide underline underline-offset-4">
+                        Change
+                      </button>
+                    )}
+                  </div>
                   <div className="col-span-2">
+                    {slotEdit === e.slot && slotEditor(e.slot, e.eventKey)}
                     <Timeline status={e.status} hasTrial={me.trials.some((t) => t.eventKey === e.eventKey)} present={!!e.attendance?.present} />
                     {me.trials
                       .filter((t) => t.eventKey === e.eventKey && `${t.date}T${t.time}` >= new Date(Date.now() - 6 * 3600e3).toISOString().slice(0, 16))
@@ -220,9 +239,24 @@ export default function MyConverge() {
                 </li>
               );
             })}
+            {emptySlots.map((slot) => (
+              <li key={slot} className="border-b border-dashed border-ink/30 py-4 pl-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="label text-ink-soft">{SLOT_LABEL[slot]} · empty</p>
+                  {me.registrationOpen && slotEdit !== slot && (
+                    <button onClick={() => setSlotEdit(slot)} className="inline-flex cursor-pointer items-center gap-1.5 border-2 border-ink px-3 py-1.5 text-xs font-bold uppercase tracking-wide hover:bg-paper-2">
+                      <Plus size={12} /> Add an event
+                    </button>
+                  )}
+                </div>
+                {slotEdit === slot && slotEditor(slot, "")}
+              </li>
+            ))}
           </ul>
           <p className="mt-6 text-sm text-ink-soft">
-            Need to change an event? Contact the main admin — changes can&apos;t be made here after submitting.
+            {me.registrationOpen
+              ? "You can add events to empty slots and change Event 4–5 until that event's first trial starts. Event 1–3 can only be changed by the main admin."
+              : "Registration is closed. To change an event, contact the main admin."}
           </p>
         </section>
       </div>

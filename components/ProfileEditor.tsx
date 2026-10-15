@@ -43,7 +43,7 @@ export default function ProfileEditor({ reg, onClose }: { reg: RegistrationRecor
     <form onSubmit={save} className="border-2 border-ink bg-paper p-5 sm:p-6">
       <p className="label">Edit profile</p>
       <p className="mt-1 text-sm text-ink-soft">
-        Name, student ID, department, semester and events can only be changed by the main admin.
+        Name, student ID, department and semester can only be changed by the main admin. Add or change Event 4–5 under “Your events”.
       </p>
       <div className="mt-5 grid gap-5 sm:grid-cols-2">
         <div className="sm:col-span-2">

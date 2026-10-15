@@ -66,6 +66,8 @@ export interface MeResponse {
   registrationOpen: boolean;
   announcements: Announcement[];
   trials: Trial[];
+  /** eventKey → when it closed (its first trial started). */
+  closedEvents: Record<string, string>;
 }
 
 export type SessionStatus = "scheduled" | "running" | "ended" | "published";

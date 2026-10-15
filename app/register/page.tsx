@@ -4,6 +4,7 @@ import RegistrationForm from "@/components/RegistrationForm";
 import { getSettings } from "@/lib/server/settings";
 import { isRegistrationOpen } from "@/lib/settings-shared";
 import { getDeadlines, fmtDeadline } from "@/lib/server/deadlines";
+import { getEventByKey, eventLabel } from "@/lib/events";
 
 export const metadata = { title: "Register | NIFT Jodhpur Converge 2026" };
 
@@ -22,6 +23,14 @@ export default async function RegisterPage() {
   const registrationOpen = isRegistrationOpen(await getSettings());
   const raw = await getDeadlines();
   const deadlines = Object.fromEntries(Object.entries(raw).map(([k, d]) => [k, { at: d.at, label: fmtDeadline(d) }]));
+  // eslint-disable-next-line react-hooks/purity -- server render; the page revalidates with the trials
+  const now = Date.now();
+  const closedNow = Object.entries(raw)
+    .filter(([, d]) => now >= d.at)
+    .map(([k]) => getEventByKey(k))
+    .filter((e) => !!e)
+    .map((e) => eventLabel(e))
+    .sort();
   return (
     <>
       <PageHeader
@@ -30,6 +39,19 @@ export default async function RegisterPage() {
         intro="Sign in with your NIFT account, add your details, and pick 3 to 5 events to enter NIFT Jodhpur's selection."
         tone="bg-blue text-paper"
       />
+
+      <div className="border-b-2 border-ink bg-ink text-paper">
+        <div className="mx-auto max-w-[1400px] px-4 py-4 text-sm sm:px-8">
+          <p className="font-semibold">
+            ⏱ Each event takes registrations only until its first trial starts. After that, that event is closed — so register early.
+          </p>
+          {closedNow.length > 0 && (
+            <p className="mt-1 text-paper/80">
+              <span className="font-semibold text-marigold">Closed — trials already started:</span> {closedNow.join(", ")}
+            </p>
+          )}
+        </div>
+      </div>
 
       {!registrationOpen && (
         <div className="border-b-2 border-ink bg-marigold">

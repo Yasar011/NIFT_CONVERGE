@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarDays, MapPin, Trash2 } from "lucide-react";
+import { CalendarDays, MapPin, MessageCircle, Trash2 } from "lucide-react";
 import clsx from "clsx";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Btn, ErrorNote, Loading, PageTitle, inputCls, useApi } from "@/components/admin/kit";
 import { PICKABLE_EVENTS, eventKey, eventLabel, getEventByKey } from "@/lib/events";
-import { CATEGORY_META } from "@/lib/types";
+import { CATEGORY_META, CATEGORY_ORDER, type EventCategory } from "@/lib/types";
 import type { Trial } from "@/lib/api-types";
+import { firstTrials, openWhatsApp, trialMessage, trialsMessage } from "@/lib/trial-share";
 
 const today = () => new Date().toISOString().slice(0, 10);
 const fmtDate = (d: string) =>
@@ -21,13 +22,18 @@ export default function TrialsPage() {
   const [form, setForm] = useState({ eventKey: "", title: "", date: today(), time: "16:00", venue: "", notes: "", notifyEveryone: false });
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [added, setAdded] = useState<Trial | null>(null);
+  const [club, setClub] = useState<EventCategory | "">("");
 
   async function add(e: React.FormEvent) {
     e.preventDefault();
     setBusy("add");
     setMsg(null);
+    setAdded(null);
     try {
-      await api("/api/admin/trials", { body: form });
+      const { id } = await api<{ id: string }>("/api/admin/trials", { body: form });
+      const ev = getEventByKey(form.eventKey);
+      if (ev) setAdded({ ...form, id, category: ev.category, title: form.title.trim() || "Trial", venue: form.venue.trim(), notes: form.notes.trim(), createdBy: "", at: Date.now() } as Trial);
       setForm((f) => ({ ...f, title: "", notes: "" }));
       setMsg({ ok: true, text: form.notifyEveryone ? "Trial added — notification sent to everyone with notifications on." : "Trial added — the event\u2019s team got a phone notification and sees it on My Converge." });
       reload();
@@ -49,8 +55,15 @@ export default function TrialsPage() {
     }
   }
 
-  const upcoming = (data?.trials ?? []).filter((t) => t.date >= today());
-  const past = (data?.trials ?? []).filter((t) => t.date < today()).reverse();
+  const all = data?.trials ?? [];
+  const first = firstTrials(all);
+  const shown = all.filter((t) => !club || t.category === club);
+  const upcoming = shown.filter((t) => t.date >= today());
+  const past = shown.filter((t) => t.date < today()).reverse();
+  const user = me?.user;
+  const portal = typeof window === "undefined" ? "" : window.location.origin;
+  const shareOne = (t: Trial) => user && openWhatsApp(trialMessage(t, user, portal, first[t.eventKey] === t.id));
+  const shareAll = () => user && openWhatsApp(trialsMessage(upcoming, user, portal, first, isMain ? club : user.club ?? ""));
 
   return (
     <div className="space-y-8">
@@ -100,6 +113,7 @@ export default function TrialsPage() {
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <Btn tone="ink" type="submit" busy={busy === "add"}>Add trial & notify</Btn>
           {msg && <p className={clsx("text-sm font-semibold", msg.ok ? "text-peacock" : "text-sindoor")}>{msg.text}</p>}
+          {added && <WhatsAppBtn onClick={() => shareOne(added)}>Send this trial on WhatsApp</WhatsAppBtn>}
         </div>
       </form>
 
@@ -108,7 +122,29 @@ export default function TrialsPage() {
         <Loading />
       ) : (
         <>
-          <TrialList title="Upcoming" trials={upcoming} busy={busy} onRemove={remove} />
+          <div className="flex flex-wrap items-end gap-3 border-2 border-ink bg-paper-2 p-4">
+            <div className="mr-auto">
+              <p className="label">Share on WhatsApp</p>
+              <p className="mt-1 text-sm text-ink-soft">
+                Opens WhatsApp with the message ready — pick your group or chat and send. Every message links to the portal and says it&apos;s from you.
+              </p>
+            </div>
+            {isMain && (
+              <label>
+                <span className="label mb-1.5 block text-ink-soft">Club</span>
+                <select className={inputCls} value={club} onChange={(e) => setClub(e.target.value as EventCategory | "")}>
+                  <option value="">All clubs</option>
+                  {CATEGORY_ORDER.map((c) => (
+                    <option key={c} value={c}>{CATEGORY_META[c].label}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+            <WhatsAppBtn onClick={shareAll} disabled={!upcoming.length}>
+              Send all {upcoming.length} upcoming{isMain && !club ? " (all clubs)" : ""}
+            </WhatsAppBtn>
+          </div>
+          <TrialList title="Upcoming" trials={upcoming} busy={busy} onRemove={remove} onShare={shareOne} />
           {past.length > 0 && <TrialList title="Past" trials={past} busy={busy} onRemove={remove} muted />}
         </>
       )}
@@ -116,7 +152,22 @@ export default function TrialsPage() {
   );
 }
 
-function TrialList({ title, trials, busy, onRemove, muted }: { title: string; trials: Trial[]; busy: string | null; onRemove: (t: Trial) => void; muted?: boolean }) {
+function WhatsAppBtn({ children, className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button
+      type="button"
+      {...props}
+      className={clsx(
+        "inline-flex cursor-pointer items-center justify-center gap-2 border-2 border-[#128C7E] bg-[#25D366] px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-[#0b2e1f] transition-colors hover:bg-[#1ebe5b] disabled:cursor-not-allowed disabled:opacity-50",
+        className
+      )}
+    >
+      <MessageCircle size={14} /> {children}
+    </button>
+  );
+}
+
+function TrialList({ title, trials, busy, onRemove, onShare, muted }: { title: string; trials: Trial[]; busy: string | null; onRemove: (t: Trial) => void; onShare?: (t: Trial) => void; muted?: boolean }) {
   return (
     <section className={clsx(muted && "opacity-70")}>
       <h2 className="display-md border-b-2 border-ink pb-2 text-3xl">{title}</h2>
@@ -137,9 +188,12 @@ function TrialList({ title, trials, busy, onRemove, muted }: { title: string; tr
                 </span>
                 {t.notes && <span className="mt-0.5 block text-sm">{t.notes}</span>}
               </span>
-              <Btn onClick={() => onRemove(t)} busy={busy === t.id} aria-label={`Cancel ${t.title}`}>
-                <Trash2 size={14} /> Cancel
-              </Btn>
+              <span className="flex flex-wrap gap-2">
+                {onShare && <WhatsAppBtn onClick={() => onShare(t)} aria-label={`Send ${t.title} on WhatsApp`}>WhatsApp</WhatsAppBtn>}
+                <Btn onClick={() => onRemove(t)} busy={busy === t.id} aria-label={`Cancel ${t.title}`}>
+                  <Trash2 size={14} /> Cancel
+                </Btn>
+              </span>
             </li>
           );
         })}
