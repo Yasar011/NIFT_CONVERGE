@@ -103,8 +103,8 @@ export const GET = handle(async (req: Request) => {
 
 type Manage =
   | { action: "remove"; entryId: string; finalPassword: string }
-  | { action: "move"; entryId: string; toEvent: string; finalPassword: string }
-  | { action: "add"; uid: string; eventKey: string; finalPassword: string };
+  | { action: "move"; entryId: string; toEvent: string; finalPassword: string; allowExtra?: boolean }
+  | { action: "add"; uid: string; eventKey: string; finalPassword: string; allowExtra?: boolean };
 
 const label = (key: string) => {
   const ev = getEventByKey(key);
@@ -149,9 +149,9 @@ export const POST = handle(async (req: Request) => {
     if (!reg) throw new HttpError(404, "That student isn't registered.");
     const id = await ownEntry(reg, body.eventKey);
     if ((await readSel()).status?.[id] === "selected") throw new HttpError(409, `${reg.fullName} is already final for ${label(body.eventKey)}.`);
-    await setEntryStatus(id, "selected"); // 3-event rule, seats and 50 cap enforced here
+    await setEntryStatus(id, "selected", { allowExtra: body.allowExtra }); // 3-event rule, seats and 50 cap enforced here
     await db.update(`entries/${id}`, { finalBy: admin.email, finalAt: Date.now(), recommendation: null, updatedAt: Date.now(), updatedBy: admin.email });
-    await audit(admin.email, "final", `${reg.fullName}: added to the final list for ${label(body.eventKey)}`);
+    await audit(admin.email, "final", `${reg.fullName}: added to the final list for ${label(body.eventKey)}${body.allowExtra ? " (allowed past the 3-event limit)" : ""}`);
     after(() => notify({ uids: [reg.uid] }, { title: "🎉 You're selected for Converge!", body: `${label(body.eventKey)} — congratulations from NIFT Jodhpur.`, url: "/me", tag: `status-${id}` }));
     return ok({ ok: true });
   }
@@ -168,7 +168,7 @@ export const POST = handle(async (req: Request) => {
     await setEntryStatus(body.entryId, "shortlisted");
     try {
       const target = await ownEntry(reg, body.toEvent);
-      await setEntryStatus(target, "selected");
+      await setEntryStatus(target, "selected", { allowExtra: body.allowExtra });
       const now = Date.now();
       await db.update("", {
         [`entries/${body.entryId}/finalBy`]: null,
@@ -182,7 +182,7 @@ export const POST = handle(async (req: Request) => {
       return ok({ ok: true });
     } catch (e) {
       // Couldn't take the new event (full, gender, 5-event limit…): put them back where they were.
-      await setEntryStatus(body.entryId, "selected").catch(() => {});
+      await setEntryStatus(body.entryId, "selected", { allowExtra: true }).catch(() => {});
       throw e;
     }
   }

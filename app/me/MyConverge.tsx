@@ -119,10 +119,10 @@ export default function MyConverge() {
             <p className="label opacity-80">Selected for</p>
             <p className="display mt-1 text-7xl">
               {selected}
-              <span className="text-4xl opacity-60">/{MAX_SELECTIONS}</span>
+              {selected <= MAX_SELECTIONS && <span className="text-4xl opacity-60">/{MAX_SELECTIONS}</span>}
             </p>
             <div className="mt-2 flex gap-1.5" aria-hidden>
-              {Array.from({ length: MAX_SELECTIONS }).map((_, i) => (
+              {Array.from({ length: Math.max(MAX_SELECTIONS, selected) }).map((_, i) => (
                 <span key={i} className={clsx("h-2 flex-1 border border-paper", i < selected ? "bg-marigold" : "bg-transparent")} />
               ))}
             </div>

@@ -53,7 +53,15 @@ function useFinalAction(onDone: () => void) {
     setBusy(key);
     setMsg(null);
     try {
-      await api("/api/admin/final", { body: { ...body, finalPassword } });
+      try {
+        await api("/api/admin/final", { body: { ...body, finalPassword } });
+      } catch (e) {
+        // Past the 3-event limit: the main admin can allow it knowingly.
+        if (!(e instanceof ApiError && e.details?.limit === "selections" && confirm(`This student is already final in ${e.details.count} events — the usual limit is 3.
+
+Select them for one more event anyway?`))) throw e;
+        await api("/api/admin/final", { body: { ...body, finalPassword, allowExtra: true } });
+      }
       setMsg({ ok: true, text: done });
       onDone();
       return true;

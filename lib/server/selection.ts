@@ -34,12 +34,13 @@ export async function readSel(): Promise<SelState> {
 
 /**
  * Changes one entry's status and enforces every rule:
- *  - a student can be selected for at most 3 events — the rest lock,
+ *  - a student can be selected for at most 3 events — the rest lock
+ *    (the main admin can knowingly go past 3 with `allowExtra`),
  *  - an event can't take more students than the rulebook allows,
  *  - the campus can't send more than 50 students.
  * Returns the ids whose status changed (the entry plus any locked/unlocked).
  */
-export async function setEntryStatus(id: string, next: EntryStatus): Promise<string[]> {
+export async function setEntryStatus(id: string, next: EntryStatus, opts: { allowExtra?: boolean } = {}): Promise<string[]> {
   if (next === "locked") throw new HttpError(400, "Locked is set automatically.");
   const { uid, eventKey } = parseEntryId(id);
   const event = getEventByKey(eventKey);
@@ -58,16 +59,23 @@ export async function setEntryStatus(id: string, next: EntryStatus): Promise<str
     const prev = s.status[id];
     if (!prev) throw new HttpError(404, "Entry not found.");
     if (prev === next) return undefined;
-    if (prev === "locked") {
+    const count = s.counts[uid] ?? 0;
+    // The client recognises `limit: "selections"` and can offer to go past 3.
+    const overLimit = () =>
+      new HttpError(409, `This student is already final in ${count} events (the usual limit is ${MAX_SELECTIONS}).`, {
+        limit: "selections",
+        count: String(count),
+      });
+    const extra = !!opts.allowExtra && next === "selected";
+    if (prev === "locked" && !extra) {
+      if (next === "selected") throw overLimit();
       throw new HttpError(409, "This student already has 3 selections. Unselect one of those first.");
     }
-
-    const count = s.counts[uid] ?? 0;
     const sid = statId(eventKey);
     const siblings = Object.keys(s.status).filter((k) => k !== id && k.startsWith(`${uid}_`));
 
     if (next === "selected") {
-      if (count >= MAX_SELECTIONS) throw new HttpError(409, "This student is already selected for 3 events.");
+      if (count >= MAX_SELECTIONS && !extra) throw overLimit();
       if ((s.events[sid] ?? 0) >= capacity) {
         throw new HttpError(409, `${event ? eventLabel(event) : "This event"} is full — the rulebook allows ${capacity}.`);
       }
@@ -75,11 +83,12 @@ export async function setEntryStatus(id: string, next: EntryStatus): Promise<str
         throw new HttpError(409, `The campus limit of ${CAMPUS_CAP} students is reached.`);
       }
       s.status[id] = "selected";
+      delete s.prev[id];
       s.events[sid] = (s.events[sid] ?? 0) + 1;
       s.counts[uid] = count + 1;
       if (count === 0) s.campus += 1;
       changed.push(id);
-      if (count + 1 === MAX_SELECTIONS) {
+      if (count + 1 >= MAX_SELECTIONS) {
         for (const k of siblings) {
           const st = s.status[k];
           if (st === "selected" || st === "not_selected" || st === "locked") continue;
@@ -97,6 +106,11 @@ export async function setEntryStatus(id: string, next: EntryStatus): Promise<str
       s.events[sid] = Math.max(0, (s.events[sid] ?? 1) - 1);
       s.counts[uid] = Math.max(0, count - 1);
       if (count === 1) s.campus = Math.max(0, s.campus - 1);
+      // Still at 3+ after this (they were over the limit): this event locks like the others.
+      if (count - 1 >= MAX_SELECTIONS && next !== "not_selected") {
+        s.prev[id] = next;
+        s.status[id] = "locked";
+      }
       if (count === MAX_SELECTIONS) {
         for (const k of siblings) {
           if (s.status[k] !== "locked") continue;

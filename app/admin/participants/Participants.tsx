@@ -353,6 +353,11 @@ function Row({
       onChanged();
       return true;
     } catch (e) {
+      if (e instanceof ApiError && e.details?.limit === "selections" && !body.allowExtra && isMain && confirm(`This student is already final in ${e.details.count} events — the usual limit is 3.
+
+Select them for one more event anyway?`)) {
+        return patch({ ...body, allowExtra: true }, what);
+      }
       if (e instanceof ApiError && e.status === 401 && e.details?.needFinalPassword) forget();
       setErr(e instanceof Error ? e.message : "Couldn't save.");
       return false;

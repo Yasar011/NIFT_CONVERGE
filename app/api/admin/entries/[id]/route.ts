@@ -44,6 +44,7 @@ export const PATCH = handle(async (req: Request, ctx: Ctx) => {
     recommendNote?: string;
     decline?: boolean;
     finalPassword?: string;
+    allowExtra?: boolean;
   }>(req);
   const now = Date.now();
   const patch: Record<string, unknown> = { updatedAt: now, updatedBy: admin.email };
@@ -60,7 +61,7 @@ export const PATCH = handle(async (req: Request, ctx: Ctx) => {
       if (admin.role !== "main_admin") throw new HttpError(403, "Only the main admin can make final selections.");
       checkFinalPassword(body.finalPassword);
     }
-    changed = await setEntryStatus(id, body.status);
+    changed = await setEntryStatus(id, body.status, { allowExtra: admin.role === "main_admin" && body.allowExtra });
     const evName = getEventByKey(entry.eventKey) ? eventLabel(getEventByKey(entry.eventKey)!) : "your event";
     if (changed.includes(id) && body.status === "shortlisted") {
       after(() => notify({ uids: [entry.uid] }, { title: "⭐ You're shortlisted!", body: `${evName} — watch My Converge for the next step.`, url: "/me", tag: `status-${id}` }));
@@ -72,7 +73,7 @@ export const PATCH = handle(async (req: Request, ctx: Ctx) => {
     // A final decision closes any open recommendation.
     if (body.status === "selected" || body.status === "not_selected") patch.recommendation = null;
     if (changed.length) {
-      log.push([isFinal ? "final" : "status", `${label}: ${STATUS_LABEL[current ?? "registered"]} → ${STATUS_LABEL[body.status]}`]);
+      log.push([isFinal ? "final" : "status", `${label}: ${STATUS_LABEL[current ?? "registered"]} → ${STATUS_LABEL[body.status]}${body.allowExtra && body.status === "selected" ? " (allowed past the 3-event limit)" : ""}`]);
       if (changed.length > 1) log.push(["status", `${entry.student.name}: ${changed.length - 1} other event(s) auto-${body.status === "selected" ? "locked" : "unlocked"}`]);
     }
   }
