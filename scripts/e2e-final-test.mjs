@@ -99,6 +99,10 @@ async function main() {
   r = await call("ma", "GET", "/api/admin/final");
   const person = r.data.events?.find((g) => g.key === "literary:mime")?.people.find((p) => p.id === eid(s1, "literary:mime"));
   check("final list: student once, with their registered events for Move", r.data.students?.filter((s) => s.uid === s1).length === 1 && person?.registered?.length === 2, person);
+  const me = r.data.students?.find((s) => s.uid === s1);
+  check("final list: student has gender for the boys/girls count", !!me?.gender, me);
+  const list = await call("ma", "GET", "/api/admin/final?format=csv-list");
+  check("students list CSV: name, ID, dept and all events on one line", list.status === 200 && list.data.includes("#,Name,Student ID,Dept,Gender,No. of events,Events") && list.data.includes(me?.studentId) && list.data.includes("Mime"), String(list.data).slice(0, 300));
   r = await fin({ action: "remove", entryId: eid(s1, "literary:mime") });
   check("remove from final list → Shortlisted", r.status === 200 && (await statusOf(eid(s1, "literary:mime"))) === "shortlisted", r);
   r = await fin({ action: "remove", entryId: eid(s1, "literary:mime") });

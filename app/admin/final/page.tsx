@@ -12,6 +12,7 @@ import { PICKABLE_EVENTS, eventKey, eventLabel, getEventByKey } from "@/lib/even
 import { cldTransform } from "@/lib/registration-schema";
 import { KIT_ITEMS, kitComplete, type KitSizes } from "@/lib/kit";
 import KitCard from "@/components/KitCard";
+import { Breakdown, FinalInBadge, genderSplit } from "@/components/admin/FinalStats";
 
 interface Person {
   id: string;
@@ -31,7 +32,7 @@ interface FinalList {
   campusCap: number;
   studentCount: number;
   events: { key: string; category: EventCategory; name: string; capacity: number; people: Person[] }[];
-  students: { uid: string; name: string; studentId: string; department: string; semester: string; photoUrl: string; events: string[]; kit: KitSizes | null }[];
+  students: { uid: string; name: string; studentId: string; department: string; semester: string; gender: string; photoUrl: string; events: string[]; kit: KitSizes | null }[];
 }
 
 export default function FinalPage() {
@@ -83,6 +84,8 @@ function FinalInner() {
   const download = useDownload();
   const action = useFinalAction(reload);
   const [adding, setAdding] = useState(false);
+  // uid → the event names they're final in, to show "Final in N events" on every row.
+  const finalIn = useMemo(() => new Map((data?.students ?? []).map((s) => [s.uid, s.events])), [data]);
 
   if (loading && !data) return <Loading />;
   if (error || !data) return <ErrorNote>{error}</ErrorNote>;
@@ -115,7 +118,7 @@ function FinalInner() {
           <span className="text-5xl text-ink-soft">/{data.campusCap}</span>
         </p>
         <p className="max-w-lg text-ink-soft">
-          Students with at least one final selection. Each student can be final in up to 3 events.{" "}
+          Students with at least one final selection. Each student is usually final in up to 3 events.{" "}
           {data.frozen ? (
             <span className="inline-flex items-center gap-1 font-semibold text-ink"><Lock size={14} /> Selections are frozen — unfreeze from Overview to change.</span>
           ) : (
@@ -123,6 +126,8 @@ function FinalInner() {
           )}
         </p>
       </div>
+
+      {data.students.length > 0 && <Breakdown students={data.students} />}
 
       {action.msg && (
         <p className={clsx("border-2 p-3 text-sm font-semibold print:hidden", action.msg.ok ? "border-peacock text-peacock" : "border-sindoor bg-sindoor/10 text-sindoor")}>
@@ -142,16 +147,22 @@ function FinalInner() {
               <h2 className="display-md flex items-center gap-3 text-2xl">
                 <span className={clsx("h-3 w-3", meta.bg)} aria-hidden /> {g.name}
               </h2>
-              <p className="text-sm tabular-nums text-ink-soft">{g.people.length}/{g.capacity} seats</p>
+              <p className="text-sm tabular-nums text-ink-soft">
+                {genderSplit(g.people)} · {g.people.length}/{g.capacity} seats
+              </p>
             </div>
             <ul>
               {g.people.map((p) => (
-                <PersonRow key={p.id} person={p} eventKeyFrom={g.key} eventName={g.name} frozen={data.frozen} run={action.run} busy={action.busy} />
+                <PersonRow key={p.id} person={p} finalIn={finalIn.get(p.uid) ?? [g.name]} eventKeyFrom={g.key} eventName={g.name} frozen={data.frozen} run={action.run} busy={action.busy} />
               ))}
             </ul>
           </section>
         );
       })}
+
+      {data.students.length > 0 && (
+        <StudentList students={data.students} onDownload={() => download("/api/admin/final?format=csv-list", "converge26-final-students.csv")} />
+      )}
 
       {data.students.length > 0 && <KitSizesSection students={data.students} onChanged={reload} />}
     </div>
@@ -159,6 +170,46 @@ function FinalInner() {
 }
 
 /** Jersey kit sizes for the final contingent: totals for the order + who's missing. */
+/** Every student once, with all their final events on one line. */
+function StudentList({ students, onDownload }: { students: FinalList["students"]; onDownload: () => void }) {
+  return (
+    <section>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-ink pb-2">
+        <h2 className="display-md text-2xl">All students · {students.length}</h2>
+        <Btn onClick={onDownload} className="print:hidden">
+          <Download size={14} /> Students list (CSV)
+        </Btn>
+      </div>
+      <div className="mt-3 overflow-x-auto">
+        <table className="w-full min-w-[40rem] border-2 border-ink text-sm">
+          <thead className="bg-paper-2 text-left">
+            <tr>
+              <th className="px-3 py-2">#</th>
+              <th className="px-3 py-2">Name</th>
+              <th className="px-3 py-2">Student ID</th>
+              <th className="px-3 py-2">Dept</th>
+              <th className="px-3 py-2">Events</th>
+              <th className="px-3 py-2 text-right">No.</th>
+            </tr>
+          </thead>
+          <tbody>
+            {students.map((s, i) => (
+              <tr key={s.uid} className="border-t border-ink/15 align-top">
+                <td className="px-3 py-2 tabular-nums text-ink-soft">{i + 1}</td>
+                <td className="px-3 py-2 font-bold">{s.name}</td>
+                <td className="px-3 py-2 tabular-nums">{s.studentId}</td>
+                <td className="px-3 py-2">{s.department}</td>
+                <td className="px-3 py-2">{s.events.join(", ")}</td>
+                <td className={clsx("px-3 py-2 text-right font-bold tabular-nums", s.events.length > 3 && "text-sindoor")}>{s.events.length}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
 function KitSizesSection({ students, onChanged }: { students: FinalList["students"]; onChanged: () => void }) {
   const [editing, setEditing] = useState<string | null>(null);
   const missing = students.filter((s) => !kitComplete(s.kit));
@@ -224,7 +275,7 @@ function KitSizesSection({ students, onChanged }: { students: FinalList["student
 
 type Run = ReturnType<typeof useFinalAction>["run"];
 
-function PersonRow({ person: p, eventKeyFrom, eventName, frozen, run, busy }: { person: Person; eventKeyFrom: string; eventName: string; frozen: boolean; run: Run; busy: string | null }) {
+function PersonRow({ person: p, finalIn, eventKeyFrom, eventName, frozen, run, busy }: { person: Person; finalIn: string[]; eventKeyFrom: string; eventName: string; frozen: boolean; run: Run; busy: string | null }) {
   const [moving, setMoving] = useState(false);
   const [to, setTo] = useState("");
   // Only the student's own registered events (other than this one).
@@ -238,7 +289,13 @@ function PersonRow({ person: p, eventKeyFrom, eventName, frozen, run, busy }: { 
         <span className="min-w-0 flex-1">
           <span className="block truncate font-bold">{p.name}</span>
           <span className="block text-xs text-ink-soft">{p.studentId} · {p.department} · Sem {p.semester} · {p.gender}</span>
+          {finalIn.length > 1 && (
+            <span className="block text-xs text-ink-soft">
+              Also final in: <span className="font-semibold text-ink">{finalIn.filter((e) => e !== eventName).join(", ")}</span>
+            </span>
+          )}
         </span>
+        <FinalInBadge events={finalIn} />
         {p.teamRole && <span className="label border border-ink px-1.5 py-0.5 text-[0.6rem]">{p.teamRole === "main" ? "Main" : "Sub"}</span>}
         {!frozen && (
           <span className="flex gap-2 print:hidden">

@@ -72,6 +72,17 @@ export const GET = handle(async (req: Request) => {
     );
   }
 
+  if (format === "csv-list") {
+    // One line per student: who they are and every event they're final in.
+    return csv(
+      [
+        ["#", "Name", "Student ID", "Dept", "Gender", "No. of events", "Events"],
+        ...students.map((s, i) => [i + 1, s.entry.student.name, s.entry.student.studentId, s.entry.student.department, s.entry.student.gender, s.events.length, s.events.join(", ")]),
+      ],
+      "converge26-final-students.csv"
+    );
+  }
+
   if (format === "csv-event") {
     return csv(
       [
@@ -119,6 +130,7 @@ export const GET = handle(async (req: Request) => {
       studentId: s.entry.student.studentId,
       department: s.entry.student.department,
       semester: s.entry.student.semester,
+      gender: s.entry.student.gender,
       photoUrl: s.entry.student.photoUrl,
       events: s.events,
     })),
