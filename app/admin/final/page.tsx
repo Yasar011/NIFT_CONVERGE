@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ArrowRightLeft, Download, Lock, Plus, Printer, Search, X } from "lucide-react";
+import { ArrowRightLeft, Download, Lock, Plus, Printer, Search, Shirt, X } from "lucide-react";
 import clsx from "clsx";
 import { useAuth, ApiError } from "@/components/auth/AuthProvider";
 import { Btn, ErrorNote, Loading, PageTitle, inputCls, useApi, useDownload } from "@/components/admin/kit";
@@ -10,6 +10,8 @@ import { FinalPasswordProvider, useFinalPassword } from "@/components/admin/Fina
 import { CATEGORY_META, type EventCategory } from "@/lib/types";
 import { PICKABLE_EVENTS, eventKey, eventLabel, getEventByKey } from "@/lib/events";
 import { cldTransform } from "@/lib/registration-schema";
+import { KIT_ITEMS, kitComplete, type KitSizes } from "@/lib/kit";
+import KitCard from "@/components/KitCard";
 
 interface Person {
   id: string;
@@ -29,7 +31,7 @@ interface FinalList {
   campusCap: number;
   studentCount: number;
   events: { key: string; category: EventCategory; name: string; capacity: number; people: Person[] }[];
-  students: { uid: string; name: string; studentId: string; department: string; semester: string; photoUrl: string; events: string[] }[];
+  students: { uid: string; name: string; studentId: string; department: string; semester: string; photoUrl: string; events: string[]; kit: KitSizes | null }[];
 }
 
 export default function FinalPage() {
@@ -99,6 +101,9 @@ function FinalInner() {
         <Btn onClick={() => download("/api/admin/final?format=csv-student", "converge26-final-by-student.csv")} className="print:hidden">
           <Download size={14} /> By student (CSV)
         </Btn>
+        <Btn onClick={() => download("/api/admin/final?format=csv-kit", "converge26-kit-sizes.csv")} className="print:hidden">
+          <Shirt size={14} /> Kit sizes (CSV)
+        </Btn>
         <Btn onClick={() => window.print()} className="print:hidden">
           <Printer size={14} /> Print
         </Btn>
@@ -147,7 +152,73 @@ function FinalInner() {
           </section>
         );
       })}
+
+      {data.students.length > 0 && <KitSizesSection students={data.students} onChanged={reload} />}
     </div>
+  );
+}
+
+/** Jersey kit sizes for the final contingent: totals for the order + who's missing. */
+function KitSizesSection({ students, onChanged }: { students: FinalList["students"]; onChanged: () => void }) {
+  const [editing, setEditing] = useState<string | null>(null);
+  const missing = students.filter((s) => !kitComplete(s.kit));
+  return (
+    <section className="break-inside-avoid">
+      <div className="flex flex-wrap items-baseline justify-between gap-2 border-b-2 border-ink pb-2">
+        <h2 className="display-md flex items-center gap-3 text-2xl"><Shirt size={22} /> Kit sizes</h2>
+        <p className="text-sm tabular-nums text-ink-soft">{students.length - missing.length}/{students.length} filled in</p>
+      </div>
+      <div className="mt-3 overflow-x-auto">
+        <table className="w-full min-w-[32rem] border-2 border-ink text-sm tabular-nums">
+          <thead className="bg-paper-2">
+            <tr>
+              <th className="px-3 py-2 text-left">Item</th>
+              {["XS", "S", "M", "L", "XL", "XXL / 2XL"].map((h) => <th key={h} className="px-3 py-2 text-left">{h}</th>)}
+              <th className="px-3 py-2 text-left">Not given</th>
+            </tr>
+          </thead>
+          <tbody>
+            {KIT_ITEMS.map((item) => {
+              const n = (size: string) => students.filter((s) => s.kit?.[item.key] === size).length;
+              const cols = ["XS", "S", "M", "L", "XL", item.key === "trackpant" ? "2XL" : "XXL"];
+              return (
+                <tr key={item.key} className="border-t border-ink/15">
+                  <td className="px-3 py-2 font-bold">{item.name}</td>
+                  {cols.map((c) => <td key={c} className="px-3 py-2">{item.sizes.includes(c) ? n(c) || "·" : "—"}</td>)}
+                  <td className="px-3 py-2 text-sindoor">{students.filter((s) => !s.kit?.[item.key]).length || "·"}</td>
+                </tr>
+              );
+            })}
+            <tr className="border-t border-ink/15">
+              <td className="px-3 py-2 font-bold">Cap</td>
+              <td className="px-3 py-2" colSpan={7}>One size × {students.length}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ul className="mt-4">
+        {students.map((s) => (
+          <li key={s.uid} className="border-b border-ink/10 py-2">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="min-w-0 flex-1">
+                <span className="font-bold">{s.name}</span> <span className="text-xs text-ink-soft">{s.studentId}</span>
+              </span>
+              <span className={clsx("text-sm", !kitComplete(s.kit) && "font-semibold text-sindoor")}>
+                {kitComplete(s.kit) ? KIT_ITEMS.map((k) => `${k.name.split(" ")[0]} ${s.kit![k.key]}`).join(" · ") : "Sizes not given yet"}
+              </span>
+              <Btn onClick={() => setEditing(editing === s.uid ? null : s.uid)} aria-expanded={editing === s.uid} className="print:hidden">
+                {kitComplete(s.kit) ? "Edit" : "Add sizes"}
+              </Btn>
+            </div>
+            {editing === s.uid && (
+              <div className="mt-2 print:hidden">
+                <KitCard kit={s.kit} forUid={s.uid} onSaved={() => { setEditing(null); onChanged(); }} />
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

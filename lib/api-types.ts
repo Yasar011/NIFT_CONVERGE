@@ -1,5 +1,6 @@
 // Shapes returned by the API — shared by server routes and client pages.
 import type { EventCategory } from "./types";
+import type { KitSizes } from "./kit";
 import type { EntryStatus, MediaRef, PickSlot, RegistrationInput } from "./registration-schema";
 
 export type Role = "student" | "club_admin" | "main_admin";
@@ -18,6 +19,8 @@ export type RegistrationRecord = Omit<RegistrationInput, "rulesAcknowledged" | "
   email: string;
   createdAt: number;
   updatedAt?: number;
+  /** Jersey kit sizes — only for students in the final list. */
+  kit?: KitSizes & { at: number; by: string };
 };
 
 export interface StudentSnapshot {
@@ -68,6 +71,8 @@ export interface MeResponse {
   trials: Trial[];
   /** eventKey → when it closed (its first trial started). */
   closedEvents: Record<string, string>;
+  /** Kit sizes can't be changed by students once selections are frozen. */
+  kitLocked: boolean;
 }
 
 export type SessionStatus = "scheduled" | "running" | "ended" | "published";

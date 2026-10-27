@@ -51,6 +51,7 @@ export const GET = handle(async (req: Request) => {
     registrationOpen: isRegistrationOpen(settings),
     announcements,
     trials,
+    kitLocked: settings.selectionFrozen,
     closedEvents: Object.fromEntries(
       Object.entries(deadlines).filter(([, d]) => Date.now() >= d.at).map(([k, d]) => [k, fmtDeadline(d)])
     ),

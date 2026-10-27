@@ -14,6 +14,7 @@ import { PICKABLE_EVENTS, eventKey, eventLabel, capacityOf, getEventByKey } from
 import { CAMPUS_CAP } from "@/lib/registration-schema";
 import { CATEGORY_META } from "@/lib/types";
 import type { EntryView } from "@/lib/api-types";
+import { KIT_ITEMS, type KitSizes } from "@/lib/kit";
 
 const cell = (v: unknown) => {
   const s = String(v ?? "");
@@ -48,6 +49,28 @@ export const GET = handle(async (req: Request) => {
     byStudent.set(e.uid, cur);
   }
   const students = [...byStudent.values()].sort((a, b) => a.entry.student.name.localeCompare(b.entry.student.name));
+  const kits = await Promise.all(students.map((s) => db.get<KitSizes>(`registrations/${s.entry.uid}/kit`)));
+  const kitOf = (i: number) => KIT_ITEMS.map((k) => kits[i]?.[k.key] ?? "");
+
+  if (format === "csv-kit") {
+    // Per-student sizes, then totals per item and size — ready for the order.
+    const totals = KIT_ITEMS.map((item) => [
+      item.name,
+      ...item.sizes.map((size) => `${size}: ${kits.filter((k) => k?.[item.key] === size).length}`),
+      `Not given: ${kits.filter((k) => !k?.[item.key]).length}`,
+    ]);
+    return csv(
+      [
+        ["#", "Name", "Student ID", "Dept", "Gender", "Phone", ...KIT_ITEMS.map((k) => k.name), "Cap"],
+        ...students.map((s, i) => [i + 1, s.entry.student.name, s.entry.student.studentId, s.entry.student.department, s.entry.student.gender, s.entry.student.phone, ...kitOf(i), "One size"]),
+        [],
+        ["TOTALS"],
+        ...totals,
+        ["Cap", `One size: ${students.length}`],
+      ],
+      "converge26-kit-sizes.csv"
+    );
+  }
 
   if (format === "csv-event") {
     return csv(
@@ -63,8 +86,8 @@ export const GET = handle(async (req: Request) => {
   if (format === "csv-student") {
     return csv(
       [
-        ["#", "Name", "Student ID", "Dept", "Sem", "Gender", "Email", "Phone", "Events"],
-        ...students.map((s, i) => [i + 1, s.entry.student.name, s.entry.student.studentId, s.entry.student.department, s.entry.student.semester, s.entry.student.gender, s.entry.student.email, s.entry.student.phone, s.events.join("; ")]),
+        ["#", "Name", "Student ID", "Dept", "Sem", "Gender", "Email", "Phone", "Events", ...KIT_ITEMS.map((k) => k.name)],
+        ...students.map((s, i) => [i + 1, s.entry.student.name, s.entry.student.studentId, s.entry.student.department, s.entry.student.semester, s.entry.student.gender, s.entry.student.email, s.entry.student.phone, s.events.join("; "), ...kitOf(i)]),
       ],
       "converge26-final-by-student.csv"
     );
@@ -89,7 +112,8 @@ export const GET = handle(async (req: Request) => {
         teamRole: e.teamRole ?? null,
       })),
     })),
-    students: students.map((s) => ({
+    students: students.map((s, i) => ({
+      kit: kits[i] ?? null,
       uid: s.entry.uid,
       name: s.entry.student.name,
       studentId: s.entry.student.studentId,
@@ -152,7 +176,7 @@ export const POST = handle(async (req: Request) => {
     await setEntryStatus(id, "selected", { allowExtra: body.allowExtra }); // 3-event rule, seats and 50 cap enforced here
     await db.update(`entries/${id}`, { finalBy: admin.email, finalAt: Date.now(), recommendation: null, updatedAt: Date.now(), updatedBy: admin.email });
     await audit(admin.email, "final", `${reg.fullName}: added to the final list for ${label(body.eventKey)}${body.allowExtra ? " (allowed past the 3-event limit)" : ""}`);
-    after(() => notify({ uids: [reg.uid] }, { title: "🎉 You're selected for Converge!", body: `${label(body.eventKey)} — congratulations from NIFT Jodhpur.`, url: "/me", tag: `status-${id}` }));
+    after(() => notify({ uids: [reg.uid] }, { title: "🎉 You're selected for Converge!", body: `${label(body.eventKey)} — congratulations from NIFT Jodhpur! Add your kit sizes on My Converge.`, url: "/me", tag: `status-${id}` }));
     return ok({ ok: true });
   }
 

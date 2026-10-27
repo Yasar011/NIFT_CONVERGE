@@ -67,7 +67,7 @@ export const PATCH = handle(async (req: Request, ctx: Ctx) => {
       after(() => notify({ uids: [entry.uid] }, { title: "⭐ You're shortlisted!", body: `${evName} — watch My Converge for the next step.`, url: "/me", tag: `status-${id}` }));
     }
     if (changed.includes(id) && body.status === "selected") {
-      after(() => notify({ uids: [entry.uid] }, { title: "🎉 You're selected for Converge!", body: `${evName} — congratulations from NIFT Jodhpur.`, url: "/me", tag: `status-${id}` }));
+      after(() => notify({ uids: [entry.uid] }, { title: "🎉 You're selected for Converge!", body: `${evName} — congratulations from NIFT Jodhpur! Add your kit sizes on My Converge.`, url: "/me", tag: `status-${id}` }));
     }
     if (body.status === "selected") Object.assign(patch, { finalBy: admin.email, finalAt: now });
     // A final decision closes any open recommendation.

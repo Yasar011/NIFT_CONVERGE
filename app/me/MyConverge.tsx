@@ -11,6 +11,8 @@ import QrPass from "@/components/QrPass";
 import NotifyCard from "@/components/NotifyCard";
 import ProfileEditor from "@/components/ProfileEditor";
 import EventSlotEditor from "@/components/EventSlotEditor";
+import KitCard from "@/components/KitCard";
+import { kitComplete } from "@/lib/kit";
 import StatusBadge from "@/components/StatusBadge";
 import { getEventByKey, eventLabel } from "@/lib/events";
 import { CATEGORY_META } from "@/lib/types";
@@ -146,6 +148,15 @@ export default function MyConverge() {
         </div>
       )}
 
+      {selected > 0 && !kitComplete(reg.kit) && !me.kitLocked && (
+        <div className="mx-auto max-w-[1400px] px-4 pt-8 sm:px-8">
+          <a href="#kit" className="btn-print flex w-full items-center justify-between gap-3 border-2 border-ink bg-peacock px-4 py-3 font-bold text-paper">
+            <span>🎉 You&apos;re in the final list — add your T-shirt, jacket and track pant sizes for your Converge kit.</span>
+            <span className="text-sm uppercase">Add sizes →</span>
+          </a>
+        </div>
+      )}
+
       {welcome && (
         <div className="border-b-2 border-ink bg-peacock text-paper">
           <p className="mx-auto flex max-w-[1400px] items-center gap-3 px-4 py-4 font-semibold sm:px-8">
@@ -169,6 +180,11 @@ export default function MyConverge() {
         </aside>
 
         <section className="lg:col-span-8">
+          {selected > 0 && (
+            <div className="mb-10">
+              <KitCard key={reg.kit?.at ?? 0} kit={reg.kit} locked={me.kitLocked} />
+            </div>
+          )}
           {me.announcements.length > 0 && (
             <div className="mb-10">
               <h2 className="display-md flex items-center gap-3 border-b-2 border-ink pb-3 text-3xl sm:text-4xl">
