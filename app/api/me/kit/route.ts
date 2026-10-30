@@ -8,8 +8,9 @@ import { validateKit, type KitSizes } from "@/lib/kit";
 import type { RegistrationRecord } from "@/lib/api-types";
 
 /**
- * Jersey kit sizes. Students in the final list set their own until selections
- * are frozen; the main admin can set anyone's (`forUid`) at any time.
+ * Jersey kit sizes. Students in the final list set their own (after signing the
+ * declaration) until selections are frozen; the main admin can set anyone's
+ * (`forUid`) at any time.
  */
 export const PUT = handle(async (req: Request) => {
   const user = await requireUser(req);
@@ -21,6 +22,7 @@ export const PUT = handle(async (req: Request) => {
   const [reg, sel, settings] = await Promise.all([db.get<RegistrationRecord>(`registrations/${uid}`), readSel(), readSettings()]);
   if (!reg) throw new HttpError(404, "Register first.");
   if (!sel.counts?.[uid]) throw new HttpError(403, "Kit sizes are only for students in the final list.");
+  if (!forOther && !reg.declaration) throw new HttpError(403, "Sign your declaration first, then add your kit sizes.");
   if (!forOther && settings.selectionFrozen) {
     throw new HttpError(423, "Kit sizes are locked now that the final list is submitted. Contact the main admin to change them.");
   }

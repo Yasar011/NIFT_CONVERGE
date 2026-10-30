@@ -6,6 +6,7 @@
 import { initializeApp, cert } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import fs from "node:fs";
+import QRCode from "qrcode";
 
 const BASE = process.env.BASE_URL || "http://localhost:3000";
 const FINAL = process.env.E2E_FINAL_PASSWORD;
@@ -59,9 +60,14 @@ async function main() {
   for (const k of Object.keys(E)) await signIn(k);
   await rtdb("PUT", `roles/${keyOf(E.ma)}`, { email: E.ma, role: "main_admin", club: null, addedBy: "e2e", addedAt: Date.now() });
   const now = Date.now();
+  // A girls' event with a free seat on the live list (seats fill up as the real selection goes on).
+  const taken = (await rtdb("GET", "sel/events")) ?? {};
+  const key = ["100m-girls", "200m-girls", "400m-girls", "shot-put-girls", "discus-throw-girls", "high-jump-girls", "table-tennis-girls", "badminton-girls", "squash-girls"]
+    .map((slug) => `sports:${slug}`)
+    .find((k) => !taken[k.replace(":", "__")]);
+  if (!key) throw new Error("No girls' event with a free seat to test with.");
   for (const k of ["s1", "s2"]) {
     const uid = uids[k];
-    const key = "sports:100m-girls";
     const student = { name: `ZZ Kit ${k}`, studentId: `ZZTEST/K/${k}`, department: "FD", semester: "3", gender: "Female", email: E[k], phone: "9000000000", residence: "", photoUrl: "" };
     await rtdb("PATCH", "", {
       [`registrations/${uid}`]: { uid, email: E[k], fullName: student.name, studentId: student.studentId, department: "FD", semester: "3", gender: "Female", phone: "9000000000", residence: "", photo: null, picks: { e1: key, e2: "", e3: "", e4: "", e5: "" }, createdAt: now },
@@ -75,8 +81,13 @@ async function main() {
   console.log("Only for the final list");
   let r = await call("s1", "PUT", "/api/me/kit", SIZES);
   check("not final yet → 403", r.status === 403, r);
-  r = await fin({ action: "add", uid: s1, eventKey: "sports:100m-girls" });
+  r = await fin({ action: "add", uid: s1, eventKey: key });
   check("main admin selects the student", r.status === 200, r);
+
+  r = await call("s1", "PUT", "/api/me/kit", SIZES);
+  check("final but declaration not signed → 403", r.status === 403 && /declaration/i.test(r.data.error), r);
+  r = await call("s1", "PUT", "/api/me/declaration", { agree: true, signature: await QRCode.toDataURL("zz-e2e signature") });
+  check("student signs the declaration", r.status === 200, r);
 
   console.log("Student sets sizes");
   r = await call("s1", "PUT", "/api/me/kit", { ...SIZES, trackpant: "XXL" });
@@ -100,7 +111,7 @@ async function main() {
   r = await call("ma", "PUT", "/api/me/kit", { ...SIZES, forUid: s2 });
   check("not final → 403 even for admin", r.status === 403, r);
 
-  r = await fin({ action: "remove", entryId: eid(s1, "sports:100m-girls") });
+  r = await fin({ action: "remove", entryId: eid(s1, key) });
   check("selection undone for cleanup", r.status === 200 && ((await rtdb("GET", `sel/counts/${s1}`)) ?? 0) === 0, r);
   console.log(`
 ${pass} passed, ${fail} failed`);
@@ -118,7 +129,7 @@ async function cleanup() {
     for (const id of Object.keys(sel.status ?? {})) if (id.startsWith(`${uid}_`)) upd[`sel/status/${id}`] = null;
     for (const id of Object.keys(sel.prev ?? {})) if (id.startsWith(`${uid}_`)) upd[`sel/prev/${id}`] = null;
     if (sel.counts?.[uid] !== undefined) upd[`sel/counts/${uid}`] = null;
-    Object.assign(upd, { [`registrations/${uid}`]: null, [`users/${uid}`]: null });
+    Object.assign(upd, { [`registrations/${uid}`]: null, [`users/${uid}`]: null, [`declarations/${uid}`]: null });
   }
   if (uids.ma) Object.assign(upd, { [`users/${uids.ma}`]: null, [`roles/${keyOf(E.ma)}`]: null });
   const log = (await rtdb("GET", "audit")) ?? {};

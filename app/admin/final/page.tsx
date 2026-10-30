@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ArrowRightLeft, Download, Lock, Plus, Printer, Search, Shirt, X } from "lucide-react";
+import { ArrowRightLeft, Download, FileSignature, Lock, Plus, Printer, RotateCcw, Search, Shirt, X } from "lucide-react";
 import clsx from "clsx";
 import { useAuth, ApiError } from "@/components/auth/AuthProvider";
 import { Btn, ErrorNote, Loading, PageTitle, inputCls, useApi, useDownload } from "@/components/admin/kit";
@@ -12,6 +12,7 @@ import { PICKABLE_EVENTS, eventKey, eventLabel, getEventByKey } from "@/lib/even
 import { cldTransform } from "@/lib/registration-schema";
 import { KIT_ITEMS, kitComplete, type KitSizes } from "@/lib/kit";
 import KitCard from "@/components/KitCard";
+import { fmtSignedAt } from "@/lib/declaration";
 import { Breakdown, FinalInBadge, genderSplit } from "@/components/admin/FinalStats";
 
 interface Person {
@@ -32,7 +33,7 @@ interface FinalList {
   campusCap: number;
   studentCount: number;
   events: { key: string; category: EventCategory; name: string; capacity: number; people: Person[] }[];
-  students: { uid: string; name: string; studentId: string; department: string; semester: string; gender: string; photoUrl: string; events: string[]; kit: KitSizes | null }[];
+  students: { uid: string; name: string; studentId: string; department: string; semester: string; gender: string; photoUrl: string; events: string[]; kit: KitSizes | null; declaredAt: number | null }[];
 }
 
 export default function FinalPage() {
@@ -161,7 +162,7 @@ function FinalInner() {
       })}
 
       {data.students.length > 0 && (
-        <StudentList students={data.students} onDownload={() => download("/api/admin/final?format=csv-list", "converge26-final-students.csv")} />
+        <StudentList students={data.students} onChanged={reload} />
       )}
 
       {data.students.length > 0 && <KitSizesSection students={data.students} onChanged={reload} />}
@@ -171,17 +172,50 @@ function FinalInner() {
 
 /** Jersey kit sizes for the final contingent: totals for the order + who's missing. */
 /** Every student once, with all their final events on one line. */
-function StudentList({ students, onDownload }: { students: FinalList["students"]; onDownload: () => void }) {
+function StudentList({ students, onChanged }: { students: FinalList["students"]; onChanged: () => void }) {
+  const { api } = useAuth();
+  const download = useDownload();
+  const [busy, setBusy] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const signed = students.filter((s) => s.declaredAt).length;
+
+  async function act(key: string, fn: () => Promise<unknown>) {
+    setBusy(key);
+    setErr(null);
+    try {
+      await fn();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Couldn't do that.");
+    } finally {
+      setBusy(null);
+    }
+  }
+  const pdfName = (s: FinalList["students"][number]) => `declaration-${s.studentId.replace(/[^A-Za-z0-9]+/g, "-")}.pdf`;
+
   return (
     <section>
       <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-ink pb-2">
         <h2 className="display-md text-2xl">All students · {students.length}</h2>
-        <Btn onClick={onDownload} className="print:hidden">
-          <Download size={14} /> Students list (CSV)
-        </Btn>
+        <span className="flex flex-wrap gap-2 print:hidden">
+          <Btn onClick={() => act("csv", () => download("/api/admin/final?format=csv-list", "converge26-final-students.csv"))} busy={busy === "csv"}>
+            <Download size={14} /> Students list (CSV)
+          </Btn>
+          <Btn
+            tone="ink"
+            disabled={!signed}
+            busy={busy === "all"}
+            onClick={() => act("all", () => download("/api/admin/declarations", "converge26-declarations.pdf"))}
+          >
+            <FileSignature size={14} /> All declarations (PDF)
+          </Btn>
+        </span>
       </div>
+      <p className="mt-2 text-sm text-ink-soft">
+        <strong className="text-ink">{signed}/{students.length}</strong> declarations signed. Students sign on My Converge before their kit opens.
+      </p>
+      {err && <p className="mt-2 border-2 border-sindoor bg-sindoor/10 p-2 text-sm font-semibold text-sindoor">{err}</p>}
       <div className="mt-3 overflow-x-auto">
-        <table className="w-full min-w-[40rem] border-2 border-ink text-sm">
+        <table className="w-full min-w-[48rem] border-2 border-ink text-sm">
           <thead className="bg-paper-2 text-left">
             <tr>
               <th className="px-3 py-2">#</th>
@@ -190,6 +224,7 @@ function StudentList({ students, onDownload }: { students: FinalList["students"]
               <th className="px-3 py-2">Dept</th>
               <th className="px-3 py-2">Events</th>
               <th className="px-3 py-2 text-right">No.</th>
+              <th className="px-3 py-2">Declaration</th>
             </tr>
           </thead>
           <tbody>
@@ -201,6 +236,43 @@ function StudentList({ students, onDownload }: { students: FinalList["students"]
                 <td className="px-3 py-2">{s.department}</td>
                 <td className="px-3 py-2">{s.events.join(", ")}</td>
                 <td className={clsx("px-3 py-2 text-right font-bold tabular-nums", s.events.length > 3 && "text-sindoor")}>{s.events.length}</td>
+                <td className="px-3 py-2">
+                  {s.declaredAt ? (
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs text-peacock">
+                        <strong>Signed</strong> {fmtSignedAt(s.declaredAt)}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={busy === `pdf-${s.uid}`}
+                        onClick={() => act(`pdf-${s.uid}`, () => download(`/api/admin/declarations?uid=${encodeURIComponent(s.uid)}`, pdfName(s)))}
+                        className="inline-flex cursor-pointer items-center gap-1 border border-ink px-1.5 py-0.5 text-[11px] font-bold uppercase disabled:opacity-50 print:hidden"
+                      >
+                        <Download size={12} /> PDF
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy === `rs-${s.uid}`}
+                        title="Make them sign again"
+                        aria-label={`Reset ${s.name}'s declaration`}
+                        onClick={() =>
+                          confirm(`Reset ${s.name}'s declaration?
+
+Their signature is deleted and they must sign again before using the kit section.`) &&
+                          act(`rs-${s.uid}`, async () => {
+                            await api(`/api/admin/declarations?uid=${encodeURIComponent(s.uid)}`, { method: "DELETE" });
+                            onChanged();
+                          })
+                        }
+                        className="cursor-pointer p-0.5 text-ink-soft hover:text-sindoor disabled:opacity-50 print:hidden"
+                      >
+                        <RotateCcw size={13} />
+                      </button>
+                    </span>
+                  ) : (
+                    <span className="text-xs font-bold text-sindoor">Not signed</span>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

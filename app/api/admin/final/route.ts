@@ -15,6 +15,7 @@ import { CAMPUS_CAP } from "@/lib/registration-schema";
 import { CATEGORY_META } from "@/lib/types";
 import type { EntryView } from "@/lib/api-types";
 import { KIT_ITEMS, type KitSizes } from "@/lib/kit";
+import { fmtSignedAt } from "@/lib/declaration";
 
 const cell = (v: unknown) => {
   const s = String(v ?? "");
@@ -49,7 +50,10 @@ export const GET = handle(async (req: Request) => {
     byStudent.set(e.uid, cur);
   }
   const students = [...byStudent.values()].sort((a, b) => a.entry.student.name.localeCompare(b.entry.student.name));
-  const kits = await Promise.all(students.map((s) => db.get<KitSizes>(`registrations/${s.entry.uid}/kit`)));
+  const [kits, declared] = await Promise.all([
+    Promise.all(students.map((s) => db.get<KitSizes>(`registrations/${s.entry.uid}/kit`))),
+    Promise.all(students.map((s) => db.get<number>(`registrations/${s.entry.uid}/declaration/at`))),
+  ]);
   const kitOf = (i: number) => KIT_ITEMS.map((k) => kits[i]?.[k.key] ?? "");
 
   if (format === "csv-kit") {
@@ -76,8 +80,11 @@ export const GET = handle(async (req: Request) => {
     // One line per student: who they are and every event they're final in.
     return csv(
       [
-        ["#", "Name", "Student ID", "Dept", "Gender", "No. of events", "Events"],
-        ...students.map((s, i) => [i + 1, s.entry.student.name, s.entry.student.studentId, s.entry.student.department, s.entry.student.gender, s.events.length, s.events.join(", ")]),
+        ["#", "Name", "Student ID", "Dept", "Gender", "No. of events", "Events", "Declaration"],
+        ...students.map((s, i) => [
+          i + 1, s.entry.student.name, s.entry.student.studentId, s.entry.student.department, s.entry.student.gender,
+          s.events.length, s.events.join(", "), declared[i] ? `Signed ${fmtSignedAt(declared[i]!)}` : "Not signed",
+        ]),
       ],
       "converge26-final-students.csv"
     );
@@ -125,6 +132,7 @@ export const GET = handle(async (req: Request) => {
     })),
     students: students.map((s, i) => ({
       kit: kits[i] ?? null,
+      declaredAt: declared[i] ?? null,
       uid: s.entry.uid,
       name: s.entry.student.name,
       studentId: s.entry.student.studentId,
@@ -188,7 +196,7 @@ export const POST = handle(async (req: Request) => {
     await setEntryStatus(id, "selected", { allowExtra: body.allowExtra }); // 3-event rule, seats and 50 cap enforced here
     await db.update(`entries/${id}`, { finalBy: admin.email, finalAt: Date.now(), recommendation: null, updatedAt: Date.now(), updatedBy: admin.email });
     await audit(admin.email, "final", `${reg.fullName}: added to the final list for ${label(body.eventKey)}${body.allowExtra ? " (allowed past the 3-event limit)" : ""}`);
-    after(() => notify({ uids: [reg.uid] }, { title: "🎉 You're selected for Converge!", body: `${label(body.eventKey)} — congratulations from NIFT Jodhpur! Add your kit sizes on My Converge.`, url: "/me", tag: `status-${id}` }));
+    after(() => notify({ uids: [reg.uid] }, { title: "🎉 You're selected for Converge!", body: `${label(body.eventKey)} — congratulations from NIFT Jodhpur! Sign your declaration and add your kit sizes on My Converge.`, url: "/me", tag: `status-${id}` }));
     return ok({ ok: true });
   }
 

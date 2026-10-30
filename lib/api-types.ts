@@ -1,6 +1,7 @@
 // Shapes returned by the API — shared by server routes and client pages.
 import type { EventCategory } from "./types";
 import type { KitSizes } from "./kit";
+import type { DeclarationMeta } from "./declaration";
 import type { EntryStatus, MediaRef, PickSlot, RegistrationInput } from "./registration-schema";
 
 export type Role = "student" | "club_admin" | "main_admin";
@@ -21,6 +22,8 @@ export type RegistrationRecord = Omit<RegistrationInput, "rulesAcknowledged" | "
   updatedAt?: number;
   /** Jersey kit sizes — only for students in the final list. */
   kit?: KitSizes & { at: number; by: string };
+  /** Set once the student signs the final-list declaration (full record under `declarations/`). */
+  declaration?: DeclarationMeta;
 };
 
 export interface StudentSnapshot {

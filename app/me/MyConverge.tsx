@@ -12,6 +12,7 @@ import NotifyCard from "@/components/NotifyCard";
 import ProfileEditor from "@/components/ProfileEditor";
 import EventSlotEditor from "@/components/EventSlotEditor";
 import KitCard from "@/components/KitCard";
+import DeclarationCard from "@/components/DeclarationCard";
 import { kitComplete } from "@/lib/kit";
 import StatusBadge from "@/components/StatusBadge";
 import { getEventByKey, eventLabel } from "@/lib/events";
@@ -148,12 +149,19 @@ export default function MyConverge() {
         </div>
       )}
 
-      {selected > 0 && !kitComplete(reg.kit) && !me.kitLocked && (
+      {selected > 0 && (!reg.declaration || (!kitComplete(reg.kit) && !me.kitLocked)) && (
         <div className="mx-auto max-w-[1400px] px-4 pt-8 sm:px-8">
-          <a href="#kit" className="btn-print flex w-full items-center justify-between gap-3 border-2 border-ink bg-peacock px-4 py-3 font-bold text-paper">
-            <span>🎉 You&apos;re in the final list — add your T-shirt, jacket and track pant sizes for your Converge kit.</span>
-            <span className="text-sm uppercase">Add sizes →</span>
-          </a>
+          {!reg.declaration ? (
+            <a href="#declaration" className="btn-print flex w-full items-center justify-between gap-3 border-2 border-ink bg-peacock px-4 py-3 font-bold text-paper">
+              <span>🎉 You&apos;re in the final list — sign your declaration first, then add your kit sizes.</span>
+              <span className="text-sm uppercase">Sign now →</span>
+            </a>
+          ) : (
+            <a href="#kit" className="btn-print flex w-full items-center justify-between gap-3 border-2 border-ink bg-peacock px-4 py-3 font-bold text-paper">
+              <span>Declaration signed — now add your T-shirt, jacket and track pant sizes for your Converge kit.</span>
+              <span className="text-sm uppercase">Add sizes →</span>
+            </a>
+          )}
         </div>
       )}
 
@@ -181,8 +189,22 @@ export default function MyConverge() {
 
         <section className="lg:col-span-8">
           {selected > 0 && (
-            <div className="mb-10">
-              <KitCard key={reg.kit?.at ?? 0} kit={reg.kit} locked={me.kitLocked} />
+            <div className="mb-10 space-y-4">
+              <DeclarationCard
+                signedAt={reg.declaration?.at}
+                student={{
+                  name: reg.fullName,
+                  studentId: reg.studentId,
+                  department: reg.department,
+                  semester: reg.semester,
+                  events: entries.filter((e) => e.status === "selected").map((e) => {
+                    const ev = getEventByKey(e.eventKey);
+                    return ev ? eventLabel(ev) : e.eventKey;
+                  }),
+                }}
+              />
+              {/* The kit opens only after the declaration is signed. */}
+              {reg.declaration && <KitCard key={reg.kit?.at ?? 0} kit={reg.kit} locked={me.kitLocked} />}
             </div>
           )}
           {me.announcements.length > 0 && (

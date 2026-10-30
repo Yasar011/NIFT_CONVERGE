@@ -12,7 +12,7 @@ export function genderSplit(people: { gender: string }[]) {
 }
 
 /** Boys / girls in the contingent, and how many events each student is final in. */
-export function Breakdown({ students }: { students: { gender: string; events: string[] }[] }) {
+export function Breakdown({ students }: { students: { gender: string; events: string[]; declaredAt?: number | null }[] }) {
   const boys = students.filter((s) => isBoy(s.gender)).length;
   const girls = students.filter((s) => isGirl(s.gender)).length;
   const other = students.length - boys - girls;
@@ -23,6 +23,7 @@ export function Breakdown({ students }: { students: { gender: string; events: st
     { label: "Girls", value: girls },
     ...(other ? [{ label: "Other / not said", value: other }] : []),
     { label: "Event spots filled", value: picks },
+    { label: "Declarations signed", value: `${students.filter((s) => s.declaredAt).length}/${students.length}` },
   ];
   const counts = [
     { label: "1 event", value: byCount(1) },
