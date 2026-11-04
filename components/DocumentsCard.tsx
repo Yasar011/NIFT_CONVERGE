@@ -58,9 +58,9 @@ async function imagesToPdf(items: Picked[], perPage: 1 | 2) {
 }
 
 // Raw body upload (not JSON) — no base64 overhead on a 2 MB file.
-async function upload(kind: DocKind, blob: Blob) {
+async function upload(kind: DocKind, blob: Blob, forUid?: string) {
   const token = await auth.currentUser?.getIdToken();
-  const res = await fetch(`/api/me/documents?kind=${kind}`, {
+  const res = await fetch(`/api/me/documents?kind=${kind}${forUid ? `&forUid=${encodeURIComponent(forUid)}` : ""}`, {
     method: "PUT",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": blob.type },
     body: blob,
@@ -74,29 +74,38 @@ interface Picked {
   rotate: number;
 }
 
+interface Target {
+  /** Main admin filling in for a student (e.g. files sent on WhatsApp). */
+  forUid?: string;
+  onSaved?: () => void;
+}
+
 /**
  * ID card details and documents for the final contingent: name, DOB, Aadhaar
  * number, passport photo, Aadhaar (front + back as one PDF) and the parents'
  * undertaking (optional for now).
  */
-export default function DocumentsCard({ reg }: { reg: RegistrationRecord }) {
+export default function DocumentsCard({ reg, forUid, onSaved }: { reg: RegistrationRecord } & Target) {
+  const t = { forUid, onSaved };
   return (
     <section id="documents" className="scroll-mt-24 border-2 border-ink bg-paper">
       <div className="border-b-2 border-ink bg-paper-2 px-5 py-3">
         <p className="label flex items-center gap-2"><FileText size={16} /> Documents for your Converge ID card</p>
-        <p className="mt-1 text-sm text-ink-soft">Only the main admin can see these. Use your details exactly as on your Aadhaar card.</p>
+        <p className="mt-1 text-sm text-ink-soft">
+          {forUid ? "Uploading for this student — use the files they sent you." : "Only the main admin can see these. Use your details exactly as on your Aadhaar card."}
+        </p>
       </div>
       <div className="divide-y-2 divide-ink/15">
-        <Details reg={reg} />
-        <PhotoField meta={reg.documents?.photo} />
-        <PdfField step={3} kind="aadhaar" meta={reg.documents?.aadhaar} perPage={2} slots={["Front", "Back"]} />
-        <PdfField step={4} kind="undertaking" meta={reg.documents?.undertaking} perPage={1} slots={["Page 1", "Page 2", "Page 3"]} optional />
+        <Details reg={reg} {...t} />
+        <PhotoField meta={reg.documents?.photo} {...t} />
+        <PdfField step={3} kind="aadhaar" meta={reg.documents?.aadhaar} perPage={2} slots={["Front", "Back"]} {...t} />
+        <PdfField step={4} kind="undertaking" meta={reg.documents?.undertaking} perPage={1} slots={["Page 1", "Page 2", "Page 3"]} optional {...t} />
       </div>
     </section>
   );
 }
 
-function Details({ reg }: { reg: RegistrationRecord }) {
+function Details({ reg, forUid, onSaved }: { reg: RegistrationRecord } & Target) {
   const { api, refresh } = useAuth();
   const [f, setF] = useState({ fullName: reg.fullName, dob: reg.dob ?? "", aadhaarNo: fmtAadhaar(reg.aadhaarNo) });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -110,9 +119,10 @@ function Details({ reg }: { reg: RegistrationRecord }) {
     setErrors({});
     setMsg(null);
     try {
-      await api("/api/me/documents", { method: "PATCH", body: f });
+      await api("/api/me/documents", { method: "PATCH", body: { ...f, forUid } });
       setMsg({ ok: true, text: "Details saved." });
-      await refresh();
+      if (onSaved) onSaved();
+      else await refresh();
     } catch (err) {
       if (err instanceof ApiError && err.details) setErrors(err.details);
       setMsg({ ok: false, text: err instanceof Error ? err.message : "Couldn't save." });
@@ -167,7 +177,7 @@ function Status({ meta }: { meta?: DocMeta }) {
   );
 }
 
-function PhotoField({ meta }: { meta?: DocMeta }) {
+function PhotoField({ meta, forUid, onSaved }: { meta?: DocMeta } & Target) {
   const { refresh } = useAuth();
   const [pick, setPick] = useState<Picked | null>(null);
   const [busy, setBusy] = useState(false);
@@ -179,9 +189,10 @@ function PhotoField({ meta }: { meta?: DocMeta }) {
     setErr(null);
     try {
       // Cropped to passport shape (35 × 45 mm) and re-saved as a JPG well under 1 MB.
-      await upload("photo", await jpeg(await toCanvas(pick.file, pick.rotate, 1200, 35 / 45), 0.9));
+      await upload("photo", await jpeg(await toCanvas(pick.file, pick.rotate, 1200, 35 / 45), 0.9), forUid);
       setPick(null);
-      await refresh();
+      if (onSaved) onSaved();
+      else await refresh();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Upload failed.");
     } finally {
@@ -237,7 +248,7 @@ function PhotoField({ meta }: { meta?: DocMeta }) {
   );
 }
 
-function PdfField({ step, kind, meta, perPage, slots, optional }: { step: number; kind: DocKind; meta?: DocMeta; perPage: 1 | 2; slots: string[]; optional?: boolean }) {
+function PdfField({ step, kind, meta, perPage, slots, optional, forUid, onSaved }: { step: number; kind: DocKind; meta?: DocMeta; perPage: 1 | 2; slots: string[]; optional?: boolean } & Target) {
   const { refresh } = useAuth();
   const spec = DOC_KINDS[kind];
   const [picks, setPicks] = useState<Picked[]>([]);
@@ -253,9 +264,10 @@ function PdfField({ step, kind, meta, perPage, slots, optional }: { step: number
       if (blob.size > spec.maxBytes) {
         throw new Error(`That PDF is ${(blob.size / 1e6).toFixed(1)} MB — the limit is ${spec.maxBytes / 1e6} MB. Add photos of the pages instead and we'll make a smaller PDF.`);
       }
-      await upload(kind, blob);
+      await upload(kind, blob, forUid);
       setPicks([]);
-      await refresh();
+      if (onSaved) onSaved();
+      else await refresh();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Upload failed.");
     } finally {

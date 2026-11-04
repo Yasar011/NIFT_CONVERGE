@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { Check, Copy, Download, FileArchive, FileSpreadsheet } from "lucide-react";
 import clsx from "clsx";
@@ -128,6 +129,7 @@ export default function FinalDocuments({ students }: { students: Student[] }) {
       </div>
       <p className="mt-2 text-sm text-ink-soft">
         <strong className="text-ink">{done}/{students.length}</strong> have given DOB, Aadhaar number, photo and Aadhaar card. The parents&apos; undertaking is optional for now.
+        {" "}Click a name to upload for that student.
       </p>
       {err && <p className="mt-2 border-2 border-sindoor bg-sindoor/10 p-2 text-sm font-semibold text-sindoor">{err}</p>}
 
@@ -146,7 +148,9 @@ export default function FinalDocuments({ students }: { students: Student[] }) {
             {students.map((s) => (
               <tr key={s.uid} className="border-t border-ink/15 align-top">
                 <td className="px-3 py-2">
-                  <span className="block font-bold">{s.name}</span>
+                  <Link href={`/admin/students/${s.uid}#documents`} className="block font-bold underline-offset-2 hover:underline" title="Open profile to upload for them">
+                    {s.name}
+                  </Link>
                   <span className="text-xs text-ink-soft">{s.studentId}</span>
                 </td>
                 <td className="px-3 py-2">{s.gender}</td>

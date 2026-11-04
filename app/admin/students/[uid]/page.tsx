@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { useAuth, ApiError } from "@/components/auth/AuthProvider";
 import { Btn, ErrorNote, Loading, PageTitle, useApi } from "@/components/admin/kit";
+import DocumentsCard from "@/components/DocumentsCard";
 import { RegistrationFields } from "@/components/RegistrationForm";
 import StatusBadge from "@/components/StatusBadge";
 import QrPass from "@/components/QrPass";
@@ -28,16 +29,24 @@ export default function StudentEdit({ params }: { params: Promise<{ uid: string 
   // Remount the editor whenever the saved record changes, so the form resets to it.
   const version = data.registration.updatedAt ?? data.registration.createdAt;
   return (
-    <Editor
-      key={version}
-      uid={uid}
-      data={data}
-      saved={saved}
-      onSaved={() => {
-        setSaved(true);
-        reload();
-      }}
-    />
+    <>
+      <Editor
+        key={version}
+        uid={uid}
+        data={data}
+        saved={saved}
+        onSaved={() => {
+          setSaved(true);
+          reload();
+        }}
+      />
+      {/* Final list: the main admin can add documents a student sent on WhatsApp. */}
+      {data.selectedCount > 0 && (
+        <div className="mt-10">
+          <DocumentsCard key={version} reg={data.registration} forUid={uid} onSaved={reload} />
+        </div>
+      )}
+    </>
   );
 }
 

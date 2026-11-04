@@ -1,5 +1,5 @@
 import { handle, ok, readJson, HttpError } from "@/lib/server/http";
-import { requireUser } from "@/lib/server/auth";
+import { requireUser, type SessionUser } from "@/lib/server/auth";
 import { db } from "@/lib/server/rtdb";
 import { readSel } from "@/lib/server/selection";
 import { queryEntries } from "@/lib/server/entries";
@@ -14,13 +14,20 @@ const MAGIC: Record<string, number[]> = {
   "application/pdf": [0x25, 0x50, 0x44, 0x46, 0x2d],
 };
 
-/** Final list + declaration signed, same gate as the kit. */
-async function finalStudent(uid: string) {
+/**
+ * Whose documents: the student's own (final list + declaration signed, same gate as the kit),
+ * or — for the main admin only — `forUid`, e.g. when a student sends them on WhatsApp.
+ */
+async function target(user: SessionUser, forUid: string | null | undefined) {
+  const byAdmin = !!forUid && forUid !== user.uid;
+  if (byAdmin && user.role !== "main_admin") throw new HttpError(403, "Only the main admin can upload for a student.");
+  if (byAdmin && !/^[A-Za-z0-9]+$/.test(forUid!)) throw new HttpError(400, "Choose a student.");
+  const uid = byAdmin ? forUid! : user.uid;
   const [reg, sel] = await Promise.all([db.get<RegistrationRecord>(`registrations/${uid}`), readSel()]);
-  if (!reg) throw new HttpError(404, "Register first.");
+  if (!reg) throw new HttpError(404, byAdmin ? "Student not found." : "Register first.");
   if (!sel.counts?.[uid]) throw new HttpError(403, "Documents are only for students in the final list.");
-  if (!reg.declaration) throw new HttpError(403, "Sign your declaration first, then upload your documents.");
-  return reg;
+  if (!byAdmin && !reg.declaration) throw new HttpError(403, "Sign your declaration first, then upload your documents.");
+  return { uid, reg, by: byAdmin ? " (by admin)" : "" };
 }
 
 /**
@@ -29,10 +36,11 @@ async function finalStudent(uid: string) {
  */
 export const PUT = handle(async (req: Request) => {
   const user = await requireUser(req);
-  const kind = new URL(req.url).searchParams.get("kind") as DocKind;
+  const params = new URL(req.url).searchParams;
+  const kind = params.get("kind") as DocKind;
+  if (!Object.hasOwn(DOC_KINDS, kind)) throw new HttpError(400, "Choose a document.");
   const spec = DOC_KINDS[kind];
-  if (!spec) throw new HttpError(400, "Choose a document.");
-  const reg = await finalStudent(user.uid);
+  const { uid, reg, by } = await target(user, params.get("forUid"));
 
   const type = (req.headers.get("content-type") ?? "").split(";")[0].trim();
   if (!(spec.types as readonly string[]).includes(type)) {
@@ -49,18 +57,18 @@ export const PUT = handle(async (req: Request) => {
   const meta = { type, size: bytes.length, at: Date.now() };
   // shortcut: files live in RTDB as base64 (private, ~50 students × ~2 MB); move to Storage if this grows.
   await db.update("", {
-    [`documents/${user.uid}/${kind}`]: { ...meta, data: bytes.toString("base64") },
-    [`registrations/${user.uid}/documents/${kind}`]: meta,
+    [`documents/${uid}/${kind}`]: { ...meta, data: bytes.toString("base64") },
+    [`registrations/${uid}/documents/${kind}`]: meta,
   });
-  await audit(user.email, "final", `${reg.fullName}: uploaded ${spec.label.toLowerCase()}`);
+  await audit(user.email, "final", `${reg.fullName}: uploaded ${spec.label.toLowerCase()}${by}`);
   return ok({ ok: true });
 });
 
 /** Details for the ID card: name (as on Aadhaar), date of birth and Aadhaar number. */
 export const PATCH = handle(async (req: Request) => {
   const user = await requireUser(req);
-  const reg = await finalStudent(user.uid);
-  const body = await readJson<{ fullName?: string; dob?: string; aadhaarNo?: string }>(req);
+  const body = await readJson<{ fullName?: string; dob?: string; aadhaarNo?: string; forUid?: string }>(req);
+  const { uid, reg, by } = await target(user, body.forUid);
   const fullName = String(body.fullName ?? "").trim().replace(/\s+/g, " ");
   const aadhaarNo = String(body.aadhaarNo ?? "").replace(/\s/g, "");
 
@@ -72,15 +80,15 @@ export const PATCH = handle(async (req: Request) => {
   if (Object.keys(errors).length) throw new HttpError(422, "Please fix the highlighted fields.", errors);
 
   const updates: Record<string, unknown> = {
-    [`registrations/${user.uid}/fullName`]: fullName,
-    [`registrations/${user.uid}/dob`]: body.dob,
-    [`registrations/${user.uid}/aadhaarNo`]: aadhaarNo,
-    [`registrations/${user.uid}/updatedAt`]: Date.now(),
+    [`registrations/${uid}/fullName`]: fullName,
+    [`registrations/${uid}/dob`]: body.dob,
+    [`registrations/${uid}/aadhaarNo`]: aadhaarNo,
+    [`registrations/${uid}/updatedAt`]: Date.now(),
   };
   // Keep the copy on each event entry (what club admins see) in step.
-  const { entries } = await queryEntries("uid", user.uid);
+  const { entries } = await queryEntries("uid", uid);
   for (const e of entries) updates[`entries/${e.id}/student/name`] = fullName;
   await db.update("", updates);
-  await audit(user.email, "profile", `${reg.fullName}${fullName !== reg.fullName ? ` → ${fullName}` : ""}: ID card details updated`);
+  await audit(user.email, "profile", `${reg.fullName}${fullName !== reg.fullName ? ` → ${fullName}` : ""}: ID card details updated${by}`);
   return ok({ ok: true });
 });

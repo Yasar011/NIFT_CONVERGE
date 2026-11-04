@@ -131,17 +131,29 @@ async function main() {
   check("kit still works", r.status === 200, r);
 
   console.log("Main admin");
+  const putFor = (who, kind, type, bytes, uid) =>
+    fetch(`${BASE}/api/me/documents?kind=${kind}&forUid=${uid}`, { method: "PUT", headers: { Authorization: `Bearer ${tokens[who]}`, "Content-Type": type }, body: bytes }).then(async (res) => ({ status: res.status, data: await res.json().catch(() => ({})) }));
+  r = await putFor("s2", "undertaking", "application/pdf", PDF, s1);
+  check("a student can't upload for someone else → 403", r.status === 403, r);
+  r = await putFor("ma", "undertaking", "application/pdf", PDF, s2);
+  check("admin upload for a student not in the final list → 403", r.status === 403 && /final list/.test(r.data.error), r);
+  r = await putFor("ma", "undertaking", "application/pdf", PDF, s1);
+  check("main admin uploads the undertaking for the student", r.status === 200 && (await rtdb("GET", `registrations/${s1}/documents/undertaking/size`)) === PDF.length, r);
+  r = await call("ma", "PATCH", "/api/me/documents", { ...DETAILS, fullName: "ZZ Docs s1 Admin", forUid: s1 });
+  check("main admin edits the student's details", r.status === 200 && (await rtdb("GET", `registrations/${s1}/fullName`)) === "ZZ Docs s1 Admin", r);
+  r = await call("ma", "PATCH", "/api/me/documents", { ...DETAILS, forUid: s1 });
+
   r = await call("s2", "GET", `/api/admin/documents?uid=${s1}&kind=photo`);
   check("students can't read files → 403", r.status === 403, r);
   r = await call("ma", "GET", `/api/admin/documents?uid=..%2Fsel&kind=photo`);
   check("odd uid → 400", r.status === 400, r);
   const f = await fetch(`${BASE}/api/admin/documents?uid=${s1}&kind=aadhaar`, { headers: { Authorization: `Bearer ${tokens.ma}` } });
   check("admin downloads the exact file", f.status === 200 && Buffer.from(await f.arrayBuffer()).equals(PDF) && f.headers.get("content-type") === "application/pdf", f.status);
-  r = await call("ma", "GET", `/api/admin/documents?uid=${s1}&kind=undertaking`);
-  check("missing optional file → 404", r.status === 404, r);
+  r = await call("ma", "GET", `/api/admin/documents?uid=${s2}&kind=undertaking`);
+  check("missing file → 404", r.status === 404, r);
   r = await call("ma", "GET", "/api/admin/final");
   const st = r.data.students?.find((s) => s.uid === s1);
-  check("Final 50 lists DOB, Aadhaar and files", st?.dob === DETAILS.dob && st?.aadhaarNo === AAD && st?.documents?.photo && !st?.documents?.undertaking, st);
+  check("Final 50 lists DOB, Aadhaar and files", st?.dob === DETAILS.dob && st?.aadhaarNo === AAD && st?.documents?.photo && st?.documents?.undertaking, st);
   r = await call("ma", "GET", "/api/admin/final?format=csv-ids");
   const row = String(r.data).split(/\r?\n/).find((l) => l.includes("ZZTEST/X/s1")) ?? "";
   const age = new Date().getFullYear() - 2005 - (new Date() < new Date(new Date().getFullYear(), 2, 9) ? 1 : 0);
