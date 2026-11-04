@@ -6,6 +6,8 @@
 import { initializeApp, cert } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import QRCode from "qrcode";
 
 const BASE = process.env.BASE_URL || "http://localhost:3000";
@@ -119,7 +121,7 @@ async function main() {
   const one = await fetch(`${BASE}/api/admin/declarations?uid=${s1}`, { headers: { Authorization: `Bearer ${tokens.ma}` } });
   const onePdf = Buffer.from(await one.arrayBuffer());
   check("single student PDF", one.status === 200 && onePdf.subarray(0, 5).toString() === "%PDF-", one.status);
-  fs.writeFileSync(process.env.E2E_PDF_OUT || "zz-declaration-sample.pdf", onePdf);
+  fs.writeFileSync(process.env.E2E_PDF_OUT || path.join(os.tmpdir(), "zz-declaration-sample.pdf"), onePdf);
   const all = await fetch(`${BASE}/api/admin/declarations`, { headers: { Authorization: `Bearer ${tokens.ma}` } });
   const allPdf = Buffer.from(await all.arrayBuffer());
   check("all-declarations PDF", all.status === 200 && allPdf.subarray(0, 5).toString() === "%PDF-" && allPdf.length >= onePdf.length, all.status);
