@@ -13,6 +13,8 @@ import { cldTransform } from "@/lib/registration-schema";
 import { KIT_ITEMS, kitComplete, type KitSizes } from "@/lib/kit";
 import KitCard from "@/components/KitCard";
 import { fmtSignedAt } from "@/lib/declaration";
+import type { DocKind, DocMeta } from "@/lib/documents";
+import FinalDocuments from "@/components/admin/FinalDocuments";
 import { Breakdown, FinalInBadge, genderSplit } from "@/components/admin/FinalStats";
 
 interface Person {
@@ -33,7 +35,7 @@ interface FinalList {
   campusCap: number;
   studentCount: number;
   events: { key: string; category: EventCategory; name: string; capacity: number; people: Person[] }[];
-  students: { uid: string; name: string; studentId: string; department: string; semester: string; gender: string; photoUrl: string; events: string[]; kit: KitSizes | null; declaredAt: number | null }[];
+  students: { uid: string; name: string; studentId: string; department: string; semester: string; gender: string; photoUrl: string; events: string[]; kit: KitSizes | null; declaredAt: number | null; dob: string; aadhaarNo: string; documents: Partial<Record<DocKind, DocMeta>> }[];
 }
 
 export default function FinalPage() {
@@ -164,6 +166,8 @@ function FinalInner() {
       {data.students.length > 0 && (
         <StudentList students={data.students} onChanged={reload} />
       )}
+
+      {data.students.length > 0 && <FinalDocuments students={data.students} />}
 
       {data.students.length > 0 && <KitSizesSection students={data.students} onChanged={reload} />}
     </div>

@@ -16,6 +16,7 @@ import { CATEGORY_META } from "@/lib/types";
 import type { EntryView } from "@/lib/api-types";
 import { KIT_ITEMS, type KitSizes } from "@/lib/kit";
 import { fmtSignedAt } from "@/lib/declaration";
+import { ageOn, fmtAadhaar, type DocKind, type DocMeta } from "@/lib/documents";
 
 const cell = (v: unknown) => {
   const s = String(v ?? "");
@@ -54,6 +55,16 @@ export const GET = handle(async (req: Request) => {
     Promise.all(students.map((s) => db.get<KitSizes>(`registrations/${s.entry.uid}/kit`))),
     Promise.all(students.map((s) => db.get<number>(`registrations/${s.entry.uid}/declaration/at`))),
   ]);
+  const ids = await Promise.all(
+    students.map(async (s) => {
+      const [dob, aadhaarNo, documents] = await Promise.all([
+        db.get<string>(`registrations/${s.entry.uid}/dob`),
+        db.get<string>(`registrations/${s.entry.uid}/aadhaarNo`),
+        db.get<Partial<Record<DocKind, DocMeta>>>(`registrations/${s.entry.uid}/documents`),
+      ]);
+      return { dob: dob ?? "", aadhaarNo: aadhaarNo ?? "", documents: documents ?? {} };
+    })
+  );
   const kitOf = (i: number) => KIT_ITEMS.map((k) => kits[i]?.[k.key] ?? "");
 
   if (format === "csv-kit") {
@@ -87,6 +98,20 @@ export const GET = handle(async (req: Request) => {
         ]),
       ],
       "converge26-final-students.csv"
+    );
+  }
+
+  if (format === "csv-ids") {
+    // For the ID cards / travel list — opens in Excel.
+    return csv(
+      [
+        ["#", "Name", "Gender", "Age", "DOB", "Aadhaar number", "Student ID", "Dept"],
+        ...students.map((s, i) => [
+          i + 1, s.entry.student.name, s.entry.student.gender, ids[i].dob ? ageOn(ids[i].dob) : "",
+          ids[i].dob ? ids[i].dob.split("-").reverse().join("-") : "", fmtAadhaar(ids[i].aadhaarNo), s.entry.student.studentId, s.entry.student.department,
+        ]),
+      ],
+      "converge26-id-details.csv"
     );
   }
 
@@ -133,6 +158,7 @@ export const GET = handle(async (req: Request) => {
     students: students.map((s, i) => ({
       kit: kits[i] ?? null,
       declaredAt: declared[i] ?? null,
+      ...ids[i],
       uid: s.entry.uid,
       name: s.entry.student.name,
       studentId: s.entry.student.studentId,

@@ -2,6 +2,7 @@
 import type { EventCategory } from "./types";
 import type { KitSizes } from "./kit";
 import type { DeclarationMeta } from "./declaration";
+import type { DocKind, DocMeta } from "./documents";
 import type { EntryStatus, MediaRef, PickSlot, RegistrationInput } from "./registration-schema";
 
 export type Role = "student" | "club_admin" | "main_admin";
@@ -24,6 +25,10 @@ export type RegistrationRecord = Omit<RegistrationInput, "rulesAcknowledged" | "
   kit?: KitSizes & { at: number; by: string };
   /** Set once the student signs the final-list declaration (full record under `declarations/`). */
   declaration?: DeclarationMeta;
+  /** ID card details and uploads — final list only (files under `documents/`). */
+  dob?: string;
+  aadhaarNo?: string;
+  documents?: Partial<Record<DocKind, DocMeta>>;
 };
 
 export interface StudentSnapshot {
