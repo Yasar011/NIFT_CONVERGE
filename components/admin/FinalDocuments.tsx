@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Download, FileArchive, FileSpreadsheet } from "lucide-react";
+import { Check, Copy, Download, FileArchive, FileSpreadsheet } from "lucide-react";
 import clsx from "clsx";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Btn, inputCls, useDownload } from "./kit";
@@ -39,6 +39,28 @@ export default function FinalDocuments({ students }: { students: Student[] }) {
   const [progress, setProgress] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const done = students.filter((s) => docsComplete(s)).length;
+  const noAadhaar = students.filter((s) => !s.documents.aadhaar);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  // Ready to paste in the WhatsApp group.
+  async function copyMissing() {
+    const text = [
+      "*CONVERGE 2026 — Aadhaar card pending*",
+      "",
+      `These ${noAadhaar.length} students in the final list have not uploaded their Aadhaar card yet:`,
+      ...noAadhaar.map((s, i) => `${i + 1}. ${s.name} (${s.studentId})`),
+      "",
+      "Please upload it today: My Converge → Documents. Add photos of the front and back — the site makes the PDF for you.",
+      `${window.location.origin}/me`,
+    ].join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(`Copied ${noAadhaar.length} names`);
+    } catch {
+      setErr("Couldn't copy — your browser blocked the clipboard.");
+    }
+    setTimeout(() => setCopied(null), 2500);
+  }
 
   async function act(key: string, fn: () => Promise<unknown>) {
     setBusy(key);
@@ -88,6 +110,9 @@ export default function FinalDocuments({ students }: { students: Student[] }) {
       <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-ink pb-2">
         <h2 className="display-md text-2xl">ID card documents</h2>
         <span className="flex flex-wrap items-center gap-2 print:hidden">
+          <Btn disabled={!noAadhaar.length} onClick={copyMissing}>
+            <Copy size={14} /> {copied ?? `Copy list: no Aadhaar (${noAadhaar.length})`}
+          </Btn>
           <Btn busy={busy === "xls"} onClick={() => act("xls", () => download("/api/admin/final?format=csv-ids", "converge26-id-details.csv"))}>
             <FileSpreadsheet size={14} /> ID details (Excel)
           </Btn>
