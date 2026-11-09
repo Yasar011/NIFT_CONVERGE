@@ -13,7 +13,7 @@ import { cldTransform } from "@/lib/registration-schema";
 import { KIT_ITEMS, kitComplete, type KitSizes } from "@/lib/kit";
 import KitCard from "@/components/KitCard";
 import { fmtSignedAt } from "@/lib/declaration";
-import { docsComplete, type DocKind, type DocMeta } from "@/lib/documents";
+import { docsComplete, fmtBlood, type DocKind, type DocMeta } from "@/lib/documents";
 import { Breakdown, FinalInBadge, genderSplit } from "@/components/admin/FinalStats";
 
 interface Person {
@@ -34,7 +34,7 @@ interface FinalList {
   campusCap: number;
   studentCount: number;
   events: { key: string; category: EventCategory; name: string; capacity: number; people: Person[] }[];
-  students: { uid: string; name: string; studentId: string; department: string; semester: string; gender: string; photoUrl: string; events: string[]; kit: KitSizes | null; declaredAt: number | null; dob: string; aadhaarNo: string; documents: Partial<Record<DocKind, DocMeta>> }[];
+  students: { uid: string; name: string; studentId: string; department: string; semester: string; gender: string; photoUrl: string; events: string[]; kit: KitSizes | null; declaredAt: number | null; dob: string; aadhaarNo: string; bloodGroup: string; documents: Partial<Record<DocKind, DocMeta>> }[];
 }
 
 export default function FinalPage() {
@@ -242,6 +242,7 @@ function StudentList({ students, onChanged }: { students: FinalList["students"];
               <th className="px-3 py-2">Name</th>
               <th className="px-3 py-2">Student ID</th>
               <th className="px-3 py-2">Dept</th>
+              <th className="px-3 py-2">Blood</th>
               <th className="px-3 py-2">Events</th>
               <th className="px-3 py-2 text-right">No.</th>
               <th className="px-3 py-2">Declaration</th>
@@ -254,6 +255,7 @@ function StudentList({ students, onChanged }: { students: FinalList["students"];
                 <td className="px-3 py-2 font-bold">{s.name}</td>
                 <td className="px-3 py-2 tabular-nums">{s.studentId}</td>
                 <td className="px-3 py-2">{s.department}</td>
+                <td className={clsx("px-3 py-2 font-bold", !s.bloodGroup && "text-xs text-sindoor")}>{s.bloodGroup ? fmtBlood(s.bloodGroup) : "—"}</td>
                 <td className="px-3 py-2">{s.events.join(", ")}</td>
                 <td className={clsx("px-3 py-2 text-right font-bold tabular-nums", s.events.length > 3 && "text-sindoor")}>{s.events.length}</td>
                 <td className="px-3 py-2">

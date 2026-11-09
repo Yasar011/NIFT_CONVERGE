@@ -15,6 +15,12 @@ export interface DocMeta {
   at: number;
 }
 
+export const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] as const;
+export type BloodGroup = (typeof BLOOD_GROUPS)[number];
+export const validBloodGroup = (v: unknown): v is BloodGroup => (BLOOD_GROUPS as readonly unknown[]).includes(v);
+/** "B−" with a real minus sign, for screens and the Excel. */
+export const fmtBlood = (v?: string) => (v ? v.replace("-", "−") : "");
+
 export const extOf = (type: string) => (type === "application/pdf" ? "pdf" : type === "image/png" ? "png" : "jpg");
 
 /** Completed years on `at` (default today) for a YYYY-MM-DD date of birth. */
@@ -56,5 +62,5 @@ export function validAadhaar(raw: unknown): raw is string {
 /** "1234 5678 9012" — readable, and Excel keeps it as text. */
 export const fmtAadhaar = (n?: string) => (n ? n.replace(/\s/g, "").replace(/(\d{4})(?=\d)/g, "$1 ") : "");
 
-export const docsComplete = (r?: { dob?: string; aadhaarNo?: string; documents?: Partial<Record<DocKind, DocMeta>> } | null) =>
-  !!r?.dob && !!r.aadhaarNo && DOC_LIST.every((k) => !DOC_KINDS[k].required || !!r.documents?.[k]);
+export const docsComplete = (r?: { dob?: string; aadhaarNo?: string; bloodGroup?: string; documents?: Partial<Record<DocKind, DocMeta>> } | null) =>
+  !!r?.dob && !!r.aadhaarNo && !!r.bloodGroup && DOC_LIST.every((k) => !DOC_KINDS[k].required || !!r.documents?.[k]);

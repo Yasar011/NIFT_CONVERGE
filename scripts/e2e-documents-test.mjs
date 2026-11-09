@@ -85,7 +85,7 @@ async function main() {
   const AAD = aad[0];
   const typo = AAD.slice(0, 5) + ((Number(AAD[5]) + 1) % 10) + AAD.slice(6);
   check("check digit: one-digit typo is rejected", !validAadhaar(typo) && !validAadhaar("123456789012") && !validAadhaar("2345"), typo);
-  const DETAILS = { fullName: "ZZ Docs s1 Renamed", dob: "2005-03-09", aadhaarNo: AAD.replace(/(\d{4})(?=\d)/g, "$1 ") };
+  const DETAILS = { fullName: "ZZ Docs s1 Renamed", dob: "2005-03-09", aadhaarNo: AAD.replace(/(\d{4})(?=\d)/g, "$1 "), bloodGroup: "B-" };
   const put = (who, kind, type, bytes) =>
     fetch(`${BASE}/api/me/documents?kind=${kind}`, { method: "PUT", headers: { Authorization: `Bearer ${tokens[who]}`, "Content-Type": type }, body: bytes }).then(async (res) => ({ status: res.status, data: await res.json().catch(() => ({})) }));
   const JPG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(3000, 7)]);
@@ -103,12 +103,12 @@ async function main() {
   check("student signs the declaration", r.status === 200, r);
 
   console.log("Details");
-  r = await call("s1", "PATCH", "/api/me/documents", { ...DETAILS, aadhaarNo: typo, dob: "2030-01-01" });
-  check("bad Aadhaar + future DOB → 422 for both", r.status === 422 && r.data.details?.aadhaarNo && r.data.details?.dob, r.data);
+  r = await call("s1", "PATCH", "/api/me/documents", { ...DETAILS, aadhaarNo: typo, dob: "2030-01-01", bloodGroup: "C+" });
+  check("bad Aadhaar + future DOB + bad blood group → 422 for all", r.status === 422 && r.data.details?.aadhaarNo && r.data.details?.dob && r.data.details?.bloodGroup, r.data);
   r = await call("s1", "PATCH", "/api/me/documents", DETAILS);
   check("valid details saved", r.status === 200, r);
   const reg = await rtdb("GET", `registrations/${s1}`);
-  check("name, DOB and Aadhaar (digits only) stored", reg.fullName === DETAILS.fullName && reg.dob === DETAILS.dob && reg.aadhaarNo === AAD, { n: reg.fullName, d: reg.dob, a: reg.aadhaarNo });
+  check("name, DOB, Aadhaar (digits only) and blood group stored", reg.fullName === DETAILS.fullName && reg.dob === DETAILS.dob && reg.aadhaarNo === AAD && reg.bloodGroup === "B-", { n: reg.fullName, d: reg.dob, a: reg.aadhaarNo });
   check("event entry shows the new name", (await rtdb("GET", `entries/${eid(s1, key)}/student/name`)) === DETAILS.fullName);
 
   console.log("Uploads");
@@ -153,11 +153,11 @@ async function main() {
   check("missing file → 404", r.status === 404, r);
   r = await call("ma", "GET", "/api/admin/final");
   const st = r.data.students?.find((s) => s.uid === s1);
-  check("Final 50 lists DOB, Aadhaar and files", st?.dob === DETAILS.dob && st?.aadhaarNo === AAD && st?.documents?.photo && st?.documents?.undertaking, st);
+  check("Final 50 lists DOB, Aadhaar, blood group and files", st?.dob === DETAILS.dob && st?.aadhaarNo === AAD && st?.bloodGroup === "B-" && st?.documents?.photo && st?.documents?.undertaking, st);
   r = await call("ma", "GET", "/api/admin/final?format=csv-ids");
   const row = String(r.data).split(/\r?\n/).find((l) => l.includes("ZZTEST/X/s1")) ?? "";
   const age = new Date().getFullYear() - 2005 - (new Date() < new Date(new Date().getFullYear(), 2, 9) ? 1 : 0);
-  check("Excel: name, gender, age, DOB, Aadhaar", String(r.data).includes("#,Name,Gender,Age,DOB,Aadhaar number") && row.includes(`ZZ Docs s1 Renamed,Female,${age},09-03-2005,${DETAILS.aadhaarNo}`), row);
+  check("Excel: name, gender, age, DOB, Aadhaar", String(r.data).includes("#,Name,Gender,Age,DOB,Aadhaar number,Blood group") && row.includes(`ZZ Docs s1 Renamed,Female,${age},09-03-2005,${DETAILS.aadhaarNo},B−`), row);
 
   console.log(`
 ${pass} passed, ${fail} failed`);

@@ -28,6 +28,7 @@ export type RegistrationRecord = Omit<RegistrationInput, "rulesAcknowledged" | "
   /** ID card details and uploads — final list only (files under `documents/`). */
   dob?: string;
   aadhaarNo?: string;
+  bloodGroup?: string;
   documents?: Partial<Record<DocKind, DocMeta>>;
 };
 

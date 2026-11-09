@@ -160,7 +160,7 @@ export default function MyConverge() {
             </a>
           ) : !docsComplete(reg) ? (
             <a href="#documents" className="btn-print flex w-full items-center justify-between gap-3 border-2 border-ink bg-peacock px-4 py-3 font-bold text-paper">
-              <span>Declaration signed — now add your DOB, Aadhaar number, passport photo and Aadhaar card for your Converge ID card.</span>
+              <span>Declaration signed — now add your DOB, Aadhaar number, blood group, passport photo and Aadhaar card for your Converge ID card.</span>
               <span className="text-sm uppercase">Upload →</span>
             </a>
           ) : (

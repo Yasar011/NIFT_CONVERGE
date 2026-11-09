@@ -5,7 +5,7 @@ import { Check, FileText, ImagePlus, RotateCw, Upload, X } from "lucide-react";
 import clsx from "clsx";
 import { useAuth, ApiError } from "./auth/AuthProvider";
 import { auth } from "@/lib/firebase/client";
-import { DOC_KINDS, ageOn, fmtAadhaar, type DocKind, type DocMeta } from "@/lib/documents";
+import { BLOOD_GROUPS, DOC_KINDS, ageOn, fmtAadhaar, fmtBlood, type DocKind, type DocMeta } from "@/lib/documents";
 import type { RegistrationRecord } from "@/lib/api-types";
 
 const control =
@@ -107,7 +107,7 @@ export default function DocumentsCard({ reg, forUid, onSaved }: { reg: Registrat
 
 function Details({ reg, forUid, onSaved }: { reg: RegistrationRecord } & Target) {
   const { api, refresh } = useAuth();
-  const [f, setF] = useState({ fullName: reg.fullName, dob: reg.dob ?? "", aadhaarNo: fmtAadhaar(reg.aadhaarNo) });
+  const [f, setF] = useState({ fullName: reg.fullName, dob: reg.dob ?? "", aadhaarNo: fmtAadhaar(reg.aadhaarNo), bloodGroup: reg.bloodGroup ?? "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -158,6 +158,12 @@ function Details({ reg, forUid, onSaved }: { reg: RegistrationRecord } & Target)
             value={f.aadhaarNo}
             onChange={(e) => setF({ ...f, aadhaarNo: fmtAadhaar(e.target.value.replace(/\D/g, "").slice(0, 12)) })}
           />
+        ))}
+        {field("bloodGroup", "Blood group", (
+          <select id="doc-bloodGroup" className={clsx(control, errors.bloodGroup && "border-sindoor")} value={f.bloodGroup} onChange={(e) => setF({ ...f, bloodGroup: e.target.value })}>
+            <option value="">Choose</option>
+            {BLOOD_GROUPS.map((g) => <option key={g} value={g}>{fmtBlood(g)}</option>)}
+          </select>
         ))}
       </div>
       <div className="flex flex-wrap items-center gap-3">

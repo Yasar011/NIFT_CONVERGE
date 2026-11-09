@@ -8,7 +8,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { Btn, ErrorNote, Loading, PageTitle, inputCls, useApi, useDownload } from "@/components/admin/kit";
 import DocumentsCard from "@/components/DocumentsCard";
 import { fmtSignedAt } from "@/lib/declaration";
-import { DOC_KINDS, DOC_LIST, ageOn, extOf, type DocKind, type DocMeta } from "@/lib/documents";
+import { BLOOD_GROUPS, DOC_KINDS, DOC_LIST, ageOn, extOf, fmtBlood, type DocKind, type DocMeta } from "@/lib/documents";
 import type { RegistrationRecord } from "@/lib/api-types";
 
 interface Student {
@@ -21,15 +21,17 @@ interface Student {
   declaredAt: number | null;
   dob: string;
   aadhaarNo: string;
+  bloodGroup: string;
   documents: Partial<Record<DocKind, DocMeta>>;
 }
 
 /** Everything a final-list student has to give, in the order they do it on My Converge. */
-type Item = "declaration" | "dob" | "aadhaarNo" | DocKind;
+type Item = "declaration" | "dob" | "aadhaarNo" | "bloodGroup" | DocKind;
 const ITEMS: { key: Item; label: string; short: string; required: boolean; has: (s: Student) => boolean }[] = [
   { key: "declaration", label: "Declaration signed", short: "declaration", required: true, has: (s) => !!s.declaredAt },
   { key: "dob", label: "Date of birth", short: "date of birth", required: true, has: (s) => !!s.dob },
   { key: "aadhaarNo", label: "Aadhaar number", short: "Aadhaar number", required: true, has: (s) => !!s.aadhaarNo },
+  { key: "bloodGroup", label: "Blood group", short: "blood group", required: true, has: (s) => !!s.bloodGroup },
   ...DOC_LIST.map((k) => ({
     key: k,
     label: k === "photo" ? "Passport photo" : k === "aadhaar" ? "Aadhaar card" : "Parents' undertaking",
@@ -71,6 +73,7 @@ function Desk({ students, reload }: { students: Student[]; reload: () => void })
   const [q, setQ] = useState("");
   const [gender, setGender] = useState("");
   const [event, setEvent] = useState("");
+  const [blood, setBlood] = useState("");
   const [open, setOpen] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>("student");
   const [busy, setBusy] = useState<string | null>(null);
@@ -87,14 +90,15 @@ function Desk({ students, reload }: { students: Student[]; reload: () => void })
       if (n && !`${s.name} ${s.studentId} ${s.department}`.toLowerCase().includes(n)) return false;
       if (gender && s.gender !== gender) return false;
       if (event && !s.events.includes(event)) return false;
+      if (blood && (s.bloodGroup || "none") !== blood) return false;
       if (show === "complete") return !missingOf(s).length;
       if (show === "missing") return missingOf(s).length > 0;
       if (show !== "all") return !ITEMS.find((i) => i.key === show)!.has(s);
       return true;
     });
-  }, [students, q, gender, event, show]);
+  }, [students, q, gender, event, blood, show]);
 
-  const filtered = !!(q || gender || event || show !== "all");
+  const filtered = !!(q || gender || event || blood || show !== "all");
   const item = ITEMS.find((i) => i.key === show);
 
   function flash(ok: boolean, text: string) {
@@ -212,6 +216,29 @@ function Desk({ students, reload }: { students: Student[]; reload: () => void })
             ))}
           </div>
 
+          {/* Blood groups in the contingent — click one to see who. */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="label text-ink-soft">Blood groups</span>
+            {[...BLOOD_GROUPS, "none"].map((g) => {
+              const n = students.filter((s) => (s.bloodGroup || "none") === g).length;
+              if (!n && g === "none") return null;
+              return (
+                <button
+                  key={g}
+                  type="button"
+                  aria-pressed={blood === g}
+                  onClick={() => setBlood(blood === g ? "" : g)}
+                  className={clsx(
+                    "cursor-pointer border-2 px-2.5 py-1 text-sm font-bold tabular-nums",
+                    blood === g ? "border-ink bg-ink text-paper" : g === "none" ? "border-sindoor/60 text-sindoor hover:border-sindoor" : "border-ink/25 hover:border-ink"
+                  )}
+                >
+                  {g === "none" ? "Not given" : fmtBlood(g)} <span className={clsx(blood === g ? "opacity-80" : "text-ink-soft", g === "none" && blood !== g && "text-sindoor")}>· {n}</span>
+                </button>
+              );
+            })}
+          </div>
+
           <div className="flex flex-wrap items-center gap-2 border-y-2 border-ink py-3">
             <label className="relative min-w-56 flex-1">
               <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft" />
@@ -230,12 +257,17 @@ function Desk({ students, reload }: { students: Student[]; reload: () => void })
               <option value="">All events</option>
               {events.map((e) => <option key={e} value={e}>{e}</option>)}
             </select>
+            <select aria-label="Blood group" className={selectCls} value={blood} onChange={(e) => setBlood(e.target.value)}>
+              <option value="">All blood groups</option>
+              {BLOOD_GROUPS.map((g) => <option key={g} value={g}>{fmtBlood(g)}</option>)}
+              <option value="none">Not given</option>
+            </select>
             <select aria-label="Gender" className={selectCls} value={gender} onChange={(e) => setGender(e.target.value)}>
               <option value="">Boys &amp; girls</option>
               {genders.map((g) => <option key={g} value={g}>{g}</option>)}
             </select>
             {filtered && (
-              <button type="button" onClick={() => { setShow("all"); setQ(""); setGender(""); setEvent(""); }} className="inline-flex cursor-pointer items-center gap-1 px-2 text-sm font-semibold underline">
+              <button type="button" onClick={() => { setShow("all"); setQ(""); setGender(""); setEvent(""); setBlood(""); }} className="inline-flex cursor-pointer items-center gap-1 px-2 text-sm font-semibold underline">
                 <X size={14} /> Clear
               </button>
             )}
@@ -263,7 +295,7 @@ function Desk({ students, reload }: { students: Student[]; reload: () => void })
           )}
 
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[56rem] border-2 border-ink text-sm">
+            <table className="w-full min-w-[60rem] border-2 border-ink text-sm">
               <thead className="bg-paper-2 text-left">
                 <tr>
                   <th className="px-3 py-2">#</th>
@@ -271,6 +303,7 @@ function Desk({ students, reload }: { students: Student[]; reload: () => void })
                   <th className="px-3 py-2">Declaration</th>
                   <th className="px-3 py-2">DOB · Age</th>
                   <th className="px-3 py-2">Aadhaar no.</th>
+                  <th className="px-3 py-2">Blood</th>
                   <th className="px-3 py-2">Files</th>
                   <th className="px-3 py-2" />
                 </tr>
@@ -290,7 +323,7 @@ function Desk({ students, reload }: { students: Student[]; reload: () => void })
                 ))}
                 {!list.length && (
                   <tr>
-                    <td colSpan={7} className="px-3 py-8 text-center text-ink-soft">No one matches these filters.</td>
+                    <td colSpan={8} className="px-3 py-8 text-center text-ink-soft">No one matches these filters.</td>
                   </tr>
                 )}
               </tbody>
@@ -322,6 +355,7 @@ function Row({ n, s, open, toggle, busy, get, onSaved }: { n: number; s: Student
         </td>
         <td className="px-3 py-2 tabular-nums">{s.dob ? `${s.dob.split("-").reverse().join("-")} · ${ageOn(s.dob)}` : notGiven}</td>
         <td className="px-3 py-2 tabular-nums">{s.aadhaarNo ? `XXXX XXXX ${s.aadhaarNo.slice(-4)}` : notGiven}</td>
+        <td className="px-3 py-2 font-bold">{s.bloodGroup ? fmtBlood(s.bloodGroup) : notGiven}</td>
         <td className="px-3 py-2">
           <span className="flex flex-wrap gap-1">
             {DOC_LIST.map((k) =>
@@ -358,7 +392,7 @@ function Row({ n, s, open, toggle, busy, get, onSaved }: { n: number; s: Student
       </tr>
       {open && (
         <tr className="bg-paper-2">
-          <td colSpan={7} className="px-3 pb-4 pt-1">
+          <td colSpan={8} className="px-3 pb-4 pt-1">
             <UploadFor uid={s.uid} onSaved={onSaved} />
           </td>
         </tr>

@@ -4,7 +4,7 @@ import { db } from "@/lib/server/rtdb";
 import { readSel } from "@/lib/server/selection";
 import { queryEntries } from "@/lib/server/entries";
 import { audit } from "@/lib/server/audit";
-import { DOC_KINDS, validAadhaar, validDob, type DocKind } from "@/lib/documents";
+import { DOC_KINDS, validAadhaar, validBloodGroup, validDob, type DocKind } from "@/lib/documents";
 import type { RegistrationRecord } from "@/lib/api-types";
 
 // Files are checked by their first bytes, not just the type the browser claims.
@@ -64,10 +64,10 @@ export const PUT = handle(async (req: Request) => {
   return ok({ ok: true });
 });
 
-/** Details for the ID card: name (as on Aadhaar), date of birth and Aadhaar number. */
+/** Details for the ID card: name (as on Aadhaar), date of birth, Aadhaar number and blood group. */
 export const PATCH = handle(async (req: Request) => {
   const user = await requireUser(req);
-  const body = await readJson<{ fullName?: string; dob?: string; aadhaarNo?: string; forUid?: string }>(req);
+  const body = await readJson<{ fullName?: string; dob?: string; aadhaarNo?: string; bloodGroup?: string; forUid?: string }>(req);
   const { uid, reg, by } = await target(user, body.forUid);
   const fullName = String(body.fullName ?? "").trim().replace(/\s+/g, " ");
   const aadhaarNo = String(body.aadhaarNo ?? "").replace(/\s/g, "");
@@ -77,12 +77,14 @@ export const PATCH = handle(async (req: Request) => {
   else if (fullName.length > 80) errors.fullName = "Name is too long.";
   if (!validDob(body.dob)) errors.dob = "Enter a valid date of birth.";
   if (!validAadhaar(aadhaarNo)) errors.aadhaarNo = "Enter your 12-digit Aadhaar number — check it again.";
+  if (!validBloodGroup(body.bloodGroup)) errors.bloodGroup = "Choose your blood group.";
   if (Object.keys(errors).length) throw new HttpError(422, "Please fix the highlighted fields.", errors);
 
   const updates: Record<string, unknown> = {
     [`registrations/${uid}/fullName`]: fullName,
     [`registrations/${uid}/dob`]: body.dob,
     [`registrations/${uid}/aadhaarNo`]: aadhaarNo,
+    [`registrations/${uid}/bloodGroup`]: body.bloodGroup,
     [`registrations/${uid}/updatedAt`]: Date.now(),
   };
   // Keep the copy on each event entry (what club admins see) in step.

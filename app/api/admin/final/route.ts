@@ -16,7 +16,7 @@ import { CATEGORY_META } from "@/lib/types";
 import type { EntryView } from "@/lib/api-types";
 import { KIT_ITEMS, type KitSizes } from "@/lib/kit";
 import { fmtSignedAt } from "@/lib/declaration";
-import { ageOn, fmtAadhaar, type DocKind, type DocMeta } from "@/lib/documents";
+import { ageOn, fmtAadhaar, fmtBlood, type DocKind, type DocMeta } from "@/lib/documents";
 
 const cell = (v: unknown) => {
   const s = String(v ?? "");
@@ -57,12 +57,13 @@ export const GET = handle(async (req: Request) => {
   ]);
   const ids = await Promise.all(
     students.map(async (s) => {
-      const [dob, aadhaarNo, documents] = await Promise.all([
+      const [dob, aadhaarNo, bloodGroup, documents] = await Promise.all([
         db.get<string>(`registrations/${s.entry.uid}/dob`),
         db.get<string>(`registrations/${s.entry.uid}/aadhaarNo`),
+        db.get<string>(`registrations/${s.entry.uid}/bloodGroup`),
         db.get<Partial<Record<DocKind, DocMeta>>>(`registrations/${s.entry.uid}/documents`),
       ]);
-      return { dob: dob ?? "", aadhaarNo: aadhaarNo ?? "", documents: documents ?? {} };
+      return { dob: dob ?? "", aadhaarNo: aadhaarNo ?? "", bloodGroup: bloodGroup ?? "", documents: documents ?? {} };
     })
   );
   const kitOf = (i: number) => KIT_ITEMS.map((k) => kits[i]?.[k.key] ?? "");
@@ -91,9 +92,9 @@ export const GET = handle(async (req: Request) => {
     // One line per student: who they are and every event they're final in.
     return csv(
       [
-        ["#", "Name", "Student ID", "Dept", "Gender", "No. of events", "Events", "Declaration"],
+        ["#", "Name", "Student ID", "Dept", "Gender", "Blood group", "No. of events", "Events", "Declaration"],
         ...students.map((s, i) => [
-          i + 1, s.entry.student.name, s.entry.student.studentId, s.entry.student.department, s.entry.student.gender,
+          i + 1, s.entry.student.name, s.entry.student.studentId, s.entry.student.department, s.entry.student.gender, fmtBlood(ids[i].bloodGroup),
           s.events.length, s.events.join(", "), declared[i] ? `Signed ${fmtSignedAt(declared[i]!)}` : "Not signed",
         ]),
       ],
@@ -105,10 +106,10 @@ export const GET = handle(async (req: Request) => {
     // For the ID cards / travel list — opens in Excel.
     return csv(
       [
-        ["#", "Name", "Gender", "Age", "DOB", "Aadhaar number", "Student ID", "Dept"],
+        ["#", "Name", "Gender", "Age", "DOB", "Aadhaar number", "Blood group", "Student ID", "Dept"],
         ...students.map((s, i) => [
           i + 1, s.entry.student.name, s.entry.student.gender, ids[i].dob ? ageOn(ids[i].dob) : "",
-          ids[i].dob ? ids[i].dob.split("-").reverse().join("-") : "", fmtAadhaar(ids[i].aadhaarNo), s.entry.student.studentId, s.entry.student.department,
+          ids[i].dob ? ids[i].dob.split("-").reverse().join("-") : "", fmtAadhaar(ids[i].aadhaarNo), fmtBlood(ids[i].bloodGroup), s.entry.student.studentId, s.entry.student.department,
         ]),
       ],
       "converge26-id-details.csv"
