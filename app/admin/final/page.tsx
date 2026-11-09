@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ArrowRightLeft, Download, FileSignature, Lock, Plus, Printer, RotateCcw, Search, Shirt, X } from "lucide-react";
+import { ArrowRight, ArrowRightLeft, Download, FileSignature, FileText, Lock, Plus, Printer, RotateCcw, Search, Shirt, X } from "lucide-react";
 import clsx from "clsx";
 import { useAuth, ApiError } from "@/components/auth/AuthProvider";
 import { Btn, ErrorNote, Loading, PageTitle, inputCls, useApi, useDownload } from "@/components/admin/kit";
@@ -13,8 +13,7 @@ import { cldTransform } from "@/lib/registration-schema";
 import { KIT_ITEMS, kitComplete, type KitSizes } from "@/lib/kit";
 import KitCard from "@/components/KitCard";
 import { fmtSignedAt } from "@/lib/declaration";
-import type { DocKind, DocMeta } from "@/lib/documents";
-import FinalDocuments from "@/components/admin/FinalDocuments";
+import { docsComplete, type DocKind, type DocMeta } from "@/lib/documents";
 import { Breakdown, FinalInBadge, genderSplit } from "@/components/admin/FinalStats";
 
 interface Person {
@@ -167,10 +166,27 @@ function FinalInner() {
         <StudentList students={data.students} onChanged={reload} />
       )}
 
-      {data.students.length > 0 && <FinalDocuments students={data.students} />}
+      {data.students.length > 0 && <DocumentsLink students={data.students} />}
 
       {data.students.length > 0 && <KitSizesSection students={data.students} onChanged={reload} />}
     </div>
+  );
+}
+
+/** ID documents now have their own page — just the count and a way there. */
+function DocumentsLink({ students }: { students: FinalList["students"] }) {
+  const done = students.filter((s) => docsComplete(s) && s.declaredAt).length;
+  return (
+    <Link href="/admin/documents" className="flex flex-wrap items-center justify-between gap-3 border-2 border-ink bg-paper-2 p-4 hover:bg-paper print:hidden">
+      <span className="flex items-center gap-3">
+        <FileText size={22} />
+        <span>
+          <span className="display-md block text-2xl">ID card documents</span>
+          <span className="text-sm text-ink-soft"><strong className="text-ink">{done}/{students.length}</strong> have given everything. Filter, upload, download and copy the pending list on the Documents page.</span>
+        </span>
+      </span>
+      <span className="inline-flex items-center gap-1 text-xs font-bold uppercase">Open Documents <ArrowRight size={14} /></span>
+    </Link>
   );
 }
 
