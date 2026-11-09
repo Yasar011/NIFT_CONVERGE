@@ -1,4 +1,5 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import { CREDIT, creditLine } from "../credit";
 import { DECLARATION_POINTS, DECLARATION_TITLE, declarationIntro, fmtSignedAt, type DeclarationRecord } from "../declaration";
 
 const A4 = { w: 595.28, h: 841.89 };
@@ -11,6 +12,8 @@ export async function declarationsPdf(records: DeclarationRecord[]): Promise<Uin
   const pdf = await PDFDocument.create();
   pdf.setTitle(records.length === 1 ? `Declaration — ${records[0].name}` : "CONVERGE 2026 declarations — NIFT Jodhpur");
   pdf.setAuthor("NIFT Jodhpur × CONVERGE 2026");
+  pdf.setCreator(CREDIT);
+  pdf.setProducer(CREDIT);
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
   for (const r of records) await drawPage(pdf, pdf.addPage([A4.w, A4.h]), r, font, bold);
@@ -109,4 +112,6 @@ async function drawPage(pdf: PDFDocument, page: PDFPage, r: DeclarationRecord, f
     `Signed electronically on the NIFT Converge portal by ${r.email} · IP ${r.ip || "—"} · declaration v${r.version}`,
     { size: 7.5, color: SOFT }
   );
+  y = M - 32;
+  text(creditLine(), { size: 7.5, f: bold, color: SOFT });
 }

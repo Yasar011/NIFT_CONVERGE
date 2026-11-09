@@ -1,4 +1,5 @@
 import { after } from "next/server";
+import { csv } from "@/lib/server/csv";
 import { handle, ok, readJson, HttpError } from "@/lib/server/http";
 import { requireMainAdmin } from "@/lib/server/auth";
 import { db } from "@/lib/server/rtdb";
@@ -18,16 +19,6 @@ import { KIT_ITEMS, type KitSizes } from "@/lib/kit";
 import { fmtSignedAt } from "@/lib/declaration";
 import { ageOn, fmtAadhaar, fmtBlood, type DocKind, type DocMeta } from "@/lib/documents";
 
-const cell = (v: unknown) => {
-  let s = String(v ?? "");
-  // A name like "=HYPERLINK(...)" must stay text in Excel, never run as a formula.
-  if (/^[=@\t\r]/.test(s) || /^[+-](?![\d\s]*$)/.test(s)) s = `'${s}`;
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-};
-const csv = (rows: unknown[][], name: string) =>
-  new Response("﻿" + rows.map((r) => r.map(cell).join(",")).join("\n"), {
-    headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="${name}"` },
-  });
 const role = (e: EntryView) => (e.teamRole === "sub" ? "Substitute" : e.teamRole === "main" ? "Main" : "");
 
 /** The final contingent: everyone marked Selected, by event and by student. */

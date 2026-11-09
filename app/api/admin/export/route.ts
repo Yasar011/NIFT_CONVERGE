@@ -1,3 +1,4 @@
+import { csv } from "@/lib/server/csv";
 import { handle, HttpError } from "@/lib/server/http";
 import { requireAdmin, assertClubAccess } from "@/lib/server/auth";
 import { queryEntries } from "@/lib/server/entries";
@@ -6,17 +7,6 @@ import { DAY_SCHOLAR, HOSTELS, SLOT_LABEL, STATUS_LABEL, stayLabel, type EntrySt
 import { CATEGORY_META } from "@/lib/types";
 import type { EntryView } from "@/lib/api-types";
 
-const cell = (v: unknown) => {
-  let s = String(v ?? "");
-  // A name like "=HYPERLINK(...)" must stay text in Excel, never run as a formula.
-  if (/^[=@\t\r]/.test(s) || /^[+-](?![\d\s]*$)/.test(s)) s = `'${s}`;
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-};
-const csv = (rows: unknown[][], name: string) =>
-  // Leading BOM so Excel opens the UTF-8 file correctly.
-  new Response("﻿" + rows.map((r) => r.map(cell).join(",")).join("\n"), {
-    headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="${name}"` },
-  });
 const label = (key: string) => {
   const ev = getEventByKey(key);
   return ev ? eventLabel(ev) : key;

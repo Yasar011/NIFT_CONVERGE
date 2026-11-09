@@ -25,6 +25,7 @@ import { useAuth } from "../auth/AuthProvider";
 import SignInPanel from "../auth/SignInPanel";
 import { Loading } from "./kit";
 import { CATEGORY_META } from "@/lib/types";
+import { CREDIT } from "@/lib/credit";
 
 const NAV = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard, main: false },
@@ -102,7 +103,11 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           </nav>
         </div>
       </aside>
-      <div className="min-w-0">{children}</div>
+      <div className="min-w-0">
+        {children}
+        {/* On every printout / "Save as PDF" of an admin page. */}
+        <p className="mt-8 hidden border-t border-ink/30 pt-2 text-[10px] text-ink-soft print:block">{CREDIT}</p>
+      </div>
     </div>
   );
 }
