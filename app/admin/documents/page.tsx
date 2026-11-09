@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Check, ChevronDown, ChevronUp, Copy, Download, FileArchive, FileSpreadsheet, Search, Upload, X } from "lucide-react";
+import { Check, ChevronDown, Droplet, ChevronUp, Copy, Download, FileArchive, FileSpreadsheet, Search, Upload, X } from "lucide-react";
 import clsx from "clsx";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Btn, ErrorNote, Loading, PageTitle, inputCls, useApi, useDownload } from "@/components/admin/kit";
 import DocumentsCard from "@/components/DocumentsCard";
+import BloodImport from "@/components/admin/BloodImport";
 import { fmtSignedAt } from "@/lib/declaration";
 import { BLOOD_GROUPS, DOC_KINDS, DOC_LIST, ageOn, extOf, fmtBlood, type DocKind, type DocMeta } from "@/lib/documents";
 import type { RegistrationRecord } from "@/lib/api-types";
@@ -74,6 +75,7 @@ function Desk({ students, reload }: { students: Student[]; reload: () => void })
   const [gender, setGender] = useState("");
   const [event, setEvent] = useState("");
   const [blood, setBlood] = useState("");
+  const [pasting, setPasting] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>("student");
   const [busy, setBusy] = useState<string | null>(null);
@@ -186,6 +188,11 @@ function Desk({ students, reload }: { students: Student[]; reload: () => void })
   return (
     <div className="space-y-6">
       <PageTitle kicker="Final list · ID card & travel" title="Documents">
+        {students.length > 0 && (
+          <Btn tone="ink" onClick={() => setPasting((v) => !v)} aria-expanded={pasting}>
+            <Droplet size={14} /> Paste blood groups
+          </Btn>
+        )}
         <Btn onClick={() => act("xls", () => download("/api/admin/final?format=csv-ids", "converge26-id-details.csv"))} busy={busy === "xls"}>
           <FileSpreadsheet size={14} /> ID details (Excel)
         </Btn>
@@ -197,6 +204,8 @@ function Desk({ students, reload }: { students: Student[]; reload: () => void })
         </p>
       ) : (
         <>
+          {pasting && <BloodImport students={students} onClose={() => setPasting(false)} onSaved={reload} />}
+
           {/* Each tile is a filter. */}
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
             {tiles.map((t) => (
