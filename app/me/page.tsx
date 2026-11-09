@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import MyConverge from "./MyConverge";
 
-export const metadata = { title: "My Converge | NIFT Jodhpur Converge 2026" };
+export const metadata = { title: "My Converge | NIFT Jodhpur Converge 2026", robots: { index: false, follow: false } };
 
 export default function MePage() {
   return (

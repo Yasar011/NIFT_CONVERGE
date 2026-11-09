@@ -13,6 +13,11 @@ export const GET = handle(async (req: Request) => {
   const doc = await db.get<{ type: string; data: string }>(`documents/${uid}/${kind}`);
   if (!doc) throw new HttpError(404, "Not uploaded yet.");
   return new Response(Buffer.from(doc.data, "base64"), {
-    headers: { "Content-Type": doc.type, "Cache-Control": "private, no-store" },
+    headers: {
+      "Content-Type": doc.type,
+      "Content-Disposition": `attachment; filename="${kind}"`,
+      "Cache-Control": "private, no-store",
+      "X-Content-Type-Options": "nosniff",
+    },
   });
 });

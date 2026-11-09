@@ -20,7 +20,8 @@ export const GET = handle(async (req: Request) => {
   await requireMainAdmin(req);
   const [regs, sel] = await Promise.all([db.get<Record<string, RegistrationRecord>>("registrations"), readSel()]);
   const students = Object.values(regs ?? {})
-    .map((r) => ({ ...r, selectedCount: sel.counts?.[r.uid] ?? 0 }))
+    // Aadhaar number left out of the bulk list — it stays on the student's profile and the ID Excel.
+    .map((r) => ({ ...r, aadhaarNo: undefined, selectedCount: sel.counts?.[r.uid] ?? 0 }))
     .sort((a, b) => b.createdAt - a.createdAt);
   return ok({ students });
 });

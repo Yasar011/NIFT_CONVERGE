@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import PageHeader from "@/components/PageHeader";
 import LoginPanel from "./LoginPanel";
 
-export const metadata = { title: "Sign in | NIFT Jodhpur Converge 2026" };
+export const metadata = { title: "Sign in | NIFT Jodhpur Converge 2026", robots: { index: false, follow: false } };
 
 export default function LoginPage() {
   return (

@@ -19,7 +19,9 @@ import { fmtSignedAt } from "@/lib/declaration";
 import { ageOn, fmtAadhaar, fmtBlood, type DocKind, type DocMeta } from "@/lib/documents";
 
 const cell = (v: unknown) => {
-  const s = String(v ?? "");
+  let s = String(v ?? "");
+  // A name like "=HYPERLINK(...)" must stay text in Excel, never run as a formula.
+  if (/^[=@\t\r]/.test(s) || /^[+-](?![\d\s]*$)/.test(s)) s = `'${s}`;
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 const csv = (rows: unknown[][], name: string) =>
