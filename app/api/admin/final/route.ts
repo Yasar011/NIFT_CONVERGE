@@ -159,7 +159,6 @@ export const GET = handle(async (req: Request) => {
       department: s.entry.student.department,
       semester: s.entry.student.semester,
       gender: s.entry.student.gender,
-      phone: s.entry.student.phone ?? "",
       photoUrl: s.entry.student.photoUrl,
       events: s.events,
     })),

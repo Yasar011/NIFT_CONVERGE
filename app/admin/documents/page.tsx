@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Check, ChevronDown, Droplet, ChevronUp, Copy, MessageCircle, Download, FileArchive, FileSpreadsheet, Search, Upload, X } from "lucide-react";
+import { Check, ChevronDown, Droplet, ChevronUp, Copy, Download, FileArchive, FileSpreadsheet, Search, Upload, X } from "lucide-react";
 import clsx from "clsx";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Btn, ErrorNote, Loading, PageTitle, inputCls, useApi, useDownload } from "@/components/admin/kit";
@@ -18,7 +18,6 @@ interface Student {
   studentId: string;
   department: string;
   gender: string;
-  phone: string;
   events: string[];
   declaredAt: number | null;
   dob: string;
@@ -45,39 +44,6 @@ const ITEMS: { key: Item; label: string; short: string; has: (s: Student) => boo
 const selectCls = inputCls.replace("w-full ", "w-auto ");
 // Everything counts — the parents' undertaking too.
 const missingOf = (s: Student) => ITEMS.filter((i) => !i.has(s));
-
-/** WhatsApp chat link for an Indian mobile number, or null if we don't have a usable one. */
-function waLink(phone: string, text: string) {
-  let d = phone.replace(/\D/g, "").replace(/^0+/, "");
-  if (d.length === 10) d = `91${d}`;
-  if (d.length !== 12) return null;
-  return `https://wa.me/${d}?text=${encodeURIComponent(text)}`;
-}
-
-/** A personal reminder: exactly what this student still has to give. */
-function personalMessage(s: Student, origin: string) {
-  const missing = missingOf(s);
-  const first = s.name.split(" ")[0];
-  return [
-    `Hi ${first}, this is from the NIFT Jodhpur Converge '26 team.`,
-    "",
-    "For your Converge ID card and travel, we still need:",
-    ...missing.map((m) => `• ${m.key === "declaration" ? "Sign your declaration (do this first)" : m.short[0].toUpperCase() + m.short.slice(1)}`),
-    "",
-    `Please add ${missing.length === 1 ? "it" : "them"} today on My Converge → Documents: ${origin}/me`,
-    "Or send the photos here on WhatsApp and we'll upload them for you.",
-  ].join("\n");
-}
-
-// When each reminder was sent — just for this admin's browser.
-const SENT_KEY = "converge26-docs-wa-sent";
-function readSent(): Record<string, number> {
-  try {
-    return JSON.parse(localStorage.getItem(SENT_KEY) || "{}");
-  } catch {
-    return {};
-  }
-}
 
 type Show = "all" | "complete" | "missing" | Item;
 
@@ -110,16 +76,6 @@ function Desk({ students, reload }: { students: Student[]; reload: () => void })
   const [event, setEvent] = useState("");
   const [blood, setBlood] = useState("");
   const [pasting, setPasting] = useState(false);
-  const [sent, setSent] = useState<Record<string, number>>(() => (typeof window === "undefined" ? {} : readSent()));
-  function markSent(uid: string, at: number) {
-    const next = { ...sent, [uid]: at };
-    setSent(next);
-    try {
-      localStorage.setItem(SENT_KEY, JSON.stringify(next));
-    } catch {
-      /* private window — fine, it's only a reminder mark */
-    }
-  }
   const [open, setOpen] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>("student");
   const [busy, setBusy] = useState<string | null>(null);
@@ -328,7 +284,7 @@ function Desk({ students, reload }: { students: Student[]; reload: () => void })
 
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-ink-soft">
-              Showing <strong className="text-ink">{list.length}</strong> of {students.length}. <strong className="text-ink">WhatsApp</strong> opens a chat with a message listing exactly what that student is missing; <strong className="text-ink">Upload</strong> adds files they sent you.
+              Showing <strong className="text-ink">{list.length}</strong> of {students.length}. Click <strong className="text-ink">Upload</strong> on a row to add files a student sent you.
             </p>
             <span className="flex flex-wrap items-center gap-2">
               <Btn tone="ink" onClick={copyList} disabled={!list.length || show === "complete"} title="Copy a message for the WhatsApp group">
@@ -369,8 +325,6 @@ function Desk({ students, reload }: { students: Student[]; reload: () => void })
                     s={s}
                     open={open === s.uid}
                     toggle={() => setOpen(open === s.uid ? null : s.uid)}
-                    sentAt={sent[s.uid]}
-                    onSend={(at) => markSent(s.uid, at)}
                     busy={busy}
                     get={(k) => act(`${s.uid}-${k}`, () => download(`/api/admin/documents?uid=${encodeURIComponent(s.uid)}&kind=${k}`, `${label(s)} - ${DOC_KINDS[k].file}.${extOf(s.documents[k]!.type)}`))}
                     onSaved={reload}
@@ -393,10 +347,8 @@ function Desk({ students, reload }: { students: Student[]; reload: () => void })
   );
 }
 
-function Row({ n, s, open, toggle, busy, get, onSaved, sentAt, onSend }: { n: number; s: Student; open: boolean; toggle: () => void; busy: string | null; get: (k: DocKind) => void; onSaved: () => void; sentAt?: number; onSend: (at: number) => void }) {
+function Row({ n, s, open, toggle, busy, get, onSaved }: { n: number; s: Student; open: boolean; toggle: () => void; busy: string | null; get: (k: DocKind) => void; onSaved: () => void }) {
   const missing = missingOf(s);
-  // Link built on click so it carries this site's real address.
-  const wa = missing.length ? waLink(s.phone, "") : null;
   const notGiven = <span className="text-xs font-bold text-sindoor">Not given</span>;
   return (
     <>
@@ -436,29 +388,7 @@ function Row({ n, s, open, toggle, busy, get, onSaved, sentAt, onSend }: { n: nu
           </span>
           {!missing.length && <span className="mt-1 block text-[11px] font-bold uppercase text-peacock">All done</span>}
         </td>
-        <td className="space-y-1 px-3 py-2 text-right">
-          {missing.length > 0 &&
-            (wa ? (
-              <a
-                href={wa}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => {
-                  e.preventDefault();
-                  window.open(waLink(s.phone, personalMessage(s, window.location.origin))!, "_blank", "noopener,noreferrer");
-                  onSend(Date.now());
-                }}
-                title={`Message ${s.name} on WhatsApp: ${missing.map((m) => m.short).join(", ")}`}
-                className={clsx(
-                  "inline-flex items-center gap-1 border-2 px-2 py-1 text-[11px] font-bold uppercase",
-                  sentAt ? "border-peacock text-peacock" : "border-[#128C7E] bg-[#128C7E] text-white hover:bg-[#0e6f63]"
-                )}
-              >
-                <MessageCircle size={12} /> {sentAt ? `Sent ${new Date(sentAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}` : "WhatsApp"}
-              </a>
-            ) : (
-              <span className="block text-[11px] font-bold text-ink-soft" title="No 10-digit mobile number on their registration">No phone</span>
-            ))}
+        <td className="px-3 py-2 text-right">
           <button
             type="button"
             onClick={toggle}
